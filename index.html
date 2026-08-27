@@ -28,8 +28,8 @@
     --topbar-h:78px;
   }
   *{box-sizing:border-box;}
-  html{scroll-padding-top:var(--topbar-h);overflow-x:hidden;}
-  body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;}
+  html{scroll-padding-top:var(--topbar-h);}
+  body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);}
   a{color:inherit;text-decoration:none;}
   button{font-family:inherit;}
 
@@ -556,7 +556,7 @@
 
   /* Mindesthoehe, damit die Filterleiste beim Kategoriewechsel immer ganz
      nach oben scrollen kann — auch bei Kategorien mit wenigen Produkten */
-  .section-wrap{max-width:640px;margin:34px auto 60px;padding:0 20px;min-height:calc(100vh - 260px);}
+  .section-wrap{max-width:640px;margin:34px auto 60px;padding:0 12px;min-height:calc(100vh - 260px);}
   .collections-wrap{width:100%;}
   .collection-section{max-width:640px;margin:0 auto 24px;padding:0 20px;}
   .collection-section:first-child{margin-top:34px;}
@@ -591,7 +591,7 @@
      Spalten passen garantiert auf jede Bildschirmbreite, auch das kleinste
      verbreitete Handy (320px) — die Karten werden dort einfach schmaler
      statt dass eine Spalte wegfaellt. */
-  .product-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+  .product-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
 
   /* Home-Kategorie-Vorschau: reine Scroll-Ergaenzung zum bestehenden Grid.
      Nur grid-auto-flow (Karten fliessen in Spalten statt Zeilen umzubrechen)
@@ -650,8 +650,9 @@
     background:#f0f3ff;color:var(--accent);border:1px solid rgba(59,102,245,.2);
     border-radius:6px;padding:2px 6px;white-space:nowrap;}
 
-  .p-buy-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;}
+  .p-buy-row{display:flex;flex-direction:column;gap:6px;margin-top:6px;}
   .p-price{font-size:14px;font-weight:800;color:var(--accent);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .p-buy{width:100%;justify-content:center;}
 
   /* ---------- Admin-Ansicht ---------- */
   body.admin-open{overflow:hidden;}
@@ -1266,6 +1267,12 @@
      1400px-Container greift erst dort, wo tatsaechlich 5-6 Spalten aktiv
      sind — bei 4 Spalten bleibt er bei 1000px, damit die Karten dort nicht
      unnoetig aufgeblaeht werden. */
+  @media (min-width:500px){
+    .product-grid{grid-template-columns:repeat(3,1fr);gap:10px;}
+    .section-wrap{padding:0 16px;}
+    .product-grid-scroll{grid-template-columns:repeat(3,calc((100% - 2*10px) / 3));
+      grid-auto-columns:calc((100% - 2*10px) / 3);}
+  }
   @media (min-width:850px){
     .section-wrap{max-width:1000px;}
     .collection-section{max-width:1000px;}
