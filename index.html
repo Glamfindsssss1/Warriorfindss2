@@ -28,8 +28,8 @@
     --topbar-h:78px;
   }
   *{box-sizing:border-box;}
-  html{scroll-padding-top:var(--topbar-h);}
-  body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);}
+  html{scroll-padding-top:var(--topbar-h);overflow-x:hidden;}
+  body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;}
   a{color:inherit;text-decoration:none;}
   button{font-family:inherit;}
 
@@ -96,7 +96,8 @@
   .creator-avatar{background-image:linear-gradient(135deg,#ffd76e,#ff9d7a);color:#5a3d1a;}
   .brand-avatar{background:#fff;color:var(--accent);border-color:#fff;overflow:hidden;}
   .brand-avatar::before{background:var(--accent);opacity:.28;}
-  .brand-avatar img{width:100%;height:100%;object-fit:contain;padding:14px;display:block;background:transparent;}
+  .brand-avatar img{width:100%;height:100%;object-fit:contain;padding:10px;display:block;mix-blend-mode:multiply;}
+  .brand-avatar img[src*="data:image/png"]{mix-blend-mode:normal;padding:8px;}
   .brand-avatar img[src*="data:image/png"]{padding:10px;}
   .brand-avatar img.fit-cover{object-fit:cover;padding:0;}
   .brand-avatar .logo-fallback{font-size:22px;}
@@ -188,9 +189,9 @@
     .promo-line1{font-size:13px;white-space:normal;}
     .promo-line3{font-size:10px;padding:2px 8px;}
     .promo-arrow{display:none;}
-    .cat-row{gap:7px;}
-    .cat-circle{width:54px;height:54px;font-size:19px;}
-    .cat-circle svg{width:22px;height:22px;}
+    .cat-row{gap:5px;}
+    .cat-circle{width:48px;height:48px;font-size:17px;}
+    .cat-circle svg{width:20px;height:20px;}
   }
 
   /* ---------- Rest of the front page (below the banner) ---------- */
@@ -539,9 +540,9 @@
   /* Scrollbalken ausblenden, Scrollen bleibt */
   .tab-bar,.cat-row{scrollbar-width:none;-ms-overflow-style:none;}
   .tab-bar::-webkit-scrollbar,.cat-row::-webkit-scrollbar{display:none;}
-  .cat-row{display:flex;gap:9px;justify-content:flex-start;overflow-x:auto;padding:4px 4px 8px;}
-  .cat-item{display:flex;flex-direction:column;align-items:center;gap:8px;flex:0 0 auto;cursor:pointer;background:none;border:none;}
-  .cat-circle{width:64px;height:64px;border-radius:999px;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;transition:border-color .15s ease;}
+  .cat-row{display:flex;gap:6px;justify-content:flex-start;overflow-x:auto;padding:4px 4px 8px;}
+  .cat-item{display:flex;flex-direction:column;align-items:center;gap:5px;flex:0 0 auto;cursor:pointer;background:none;border:none;}
+  .cat-circle{width:56px;height:56px;border-radius:999px;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:20px;transition:border-color .15s ease;}
   .cat-circle{overflow:hidden;position:relative;}
   .cat-circle svg{width:26px;height:26px;color:var(--cat-icon);transition:color .15s ease;}
   /* padding steuert, wie gross das Bild im Kreis sitzt — hoeher = kleineres Bild */
@@ -590,7 +591,7 @@
      Spalten passen garantiert auf jede Bildschirmbreite, auch das kleinste
      verbreitete Handy (320px) — die Karten werden dort einfach schmaler
      statt dass eine Spalte wegfaellt. */
-  .product-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+  .product-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
 
   /* Home-Kategorie-Vorschau: reine Scroll-Ergaenzung zum bestehenden Grid.
      Nur grid-auto-flow (Karten fliessen in Spalten statt Zeilen umzubrechen)
@@ -1244,13 +1245,13 @@
   .p-buy:focus-visible{outline:3px solid rgba(59,102,245,.4);outline-offset:2px;}
   /* Touch-Geraete: groesseres Ziel statt Desktop-Masse */
   @media (pointer:coarse){
-    .p-buy{height:40px;padding:0 14px;width:100%;}
-    .p-heart{width:36px;height:36px;font-size:16px;}
+    .p-buy{height:36px;padding:0 10px;font-size:11px;width:100%;}
+    .p-heart{width:34px;height:34px;font-size:14px;}
   }
   @media (max-width:420px){
-    .p-name{font-size:12px;}
-    .p-price{font-size:14px;}
-    .p-info{padding:8px 8px 10px;}
+    .p-name{font-size:11px;}
+    .p-price{font-size:13px;}
+    .p-info{padding:6px 6px 8px;}
   }
 
   /* Feste Breakpoint-Stufen 3 -> 4 -> 5 -> 6, KEIN auto-fill mehr fuer diese
@@ -1265,11 +1266,6 @@
      1400px-Container greift erst dort, wo tatsaechlich 5-6 Spalten aktiv
      sind — bei 4 Spalten bleibt er bei 1000px, damit die Karten dort nicht
      unnoetig aufgeblaeht werden. */
-  @media (min-width:560px){
-    .product-grid{grid-template-columns:repeat(3,1fr);gap:12px;}
-    .product-grid-scroll{grid-template-columns:repeat(3,calc((100% - 2*12px) / 3));
-      grid-auto-columns:calc((100% - 2*12px) / 3);}
-  }
   @media (min-width:850px){
     .section-wrap{max-width:1000px;}
     .collection-section{max-width:1000px;}
