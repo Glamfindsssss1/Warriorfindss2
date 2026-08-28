@@ -2201,7 +2201,15 @@ function renderStyleTabs(){
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "tab-item" + (activeStyle===st ? " active":"");
-    btn.textContent = st === "ALL" ? T().styleAll : st;   // Wert bleibt "ALL", nur die Anzeige wechselt
+    const label = st === "ALL" ? T().styleAll : st;   // Wert bleibt "ALL", nur die Anzeige wechselt
+    // Das ganze Label (Text + Emoji) steckt in einem eigenen Span, an dessen
+    // gemessener Box sich der Strich unten ausrichtet — Emoji sollen mit
+    // unterstrichen sein. Ein direktes Range.getBoundingClientRect() auf dem
+    // rohen Textknoten hatte Emoji-Glyphen in Safari nicht zuverlaessig
+    // mitgezaehlt (der Strich hoerte davor auf); ein echtes Element wie
+    // dieser Span wird dagegen ganz normal ueber Layout vermessen, so wie
+    // auch der Button selbst korrekt breit genug fuer sein Emoji wird.
+    btn.innerHTML = `<span class="tab-label-core">${aesc(label)}</span>`;
     btn.dataset.style = st;
     // Ohne das hier fokussiert der Browser den Button beim Antippen und
     // scrollt ihn automatisch ins Sichtfeld — weil renderStyleTabs() die
@@ -2231,21 +2239,20 @@ function renderStyleTabs(){
 }
 
 // Positioniert den blauen Strich unter dem aktiven Style-Tab exakt anhand
-// der tatsaechlich gerenderten Textbreite (per Range), statt einfach die
-// volle Button-Box (left:0/right:0) anzunehmen — die stimmt mit dem Text
-// naemlich nicht immer exakt ueberein (u.a. auf manchen Geraeten minimal
-// breiter als der sichtbare Text bei Styles mit Emoji + letter-spacing),
-// wodurch der Strich sonst leicht versetzt neben statt unter dem Namen sass.
+// der gemessenen Box von .tab-label-core (siehe oben in renderStyleTabs),
+// statt einfach CSS-seitig die volle Button-Box (left:0/right:0)
+// anzunehmen — auf manchen Geraeten war die minimal breiter als das
+// sichtbare Label (u.a. durch letter-spacing hinter dem letzten Zeichen).
 function alignActiveTabUnderline(){
   const btn = styleTabRow.querySelector(".tab-item.active");
-  if(!btn || !btn.firstChild) return;
-  const range = document.createRange();
-  range.selectNodeContents(btn.firstChild);
-  const textRect = range.getBoundingClientRect();
+  if(!btn) return;
+  const core = btn.querySelector(".tab-label-core");
+  if(!core) return; // sollte immer existieren (siehe renderStyleTabs) — nur zur Sicherheit
+  const coreRect = core.getBoundingClientRect();
   const btnRect = btn.getBoundingClientRect();
-  if(!textRect.width) return; // z.B. waehrend die Leiste noch unsichtbar ist
-  btn.style.setProperty("--ul-left", (textRect.left - btnRect.left) + "px");
-  btn.style.setProperty("--ul-width", textRect.width + "px");
+  if(!coreRect.width) return; // z.B. waehrend die Leiste noch unsichtbar ist
+  btn.style.setProperty("--ul-left", (coreRect.left - btnRect.left) + "px");
+  btn.style.setProperty("--ul-width", coreRect.width + "px");
 }
 
 const productGrid  = document.getElementById("productGrid");
