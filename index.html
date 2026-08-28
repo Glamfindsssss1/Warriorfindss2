@@ -652,9 +652,17 @@
 
   .p-buy-row{display:flex;flex-direction:column;gap:5px;margin-top:6px;}
   .p-price{font-size:12px;font-weight:800;color:var(--accent);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .p-buy{width:100%;justify-content:center;height:28px;padding:0 6px;font-size:9px;letter-spacing:.04em;}
+  .p-buy{width:100%;justify-content:center;height:24px;padding:0 4px;font-size:8px;letter-spacing:.04em;}
+  .p-buy-row{flex-direction:column;gap:4px;margin-top:5px;}
+  .p-info{padding:6px 7px 8px;}
+  .p-name{font-size:10px;}
+  .p-price{font-size:11px;}
   @media (min-width:850px){
     .p-buy{width:auto;height:34px;padding:0 14px;font-size:12px;letter-spacing:.06em;}
+    .p-buy-row{flex-direction:row;align-items:center;justify-content:space-between;gap:10px;}
+    .p-info{padding:10px 12px 12px;}
+    .p-name{font-size:13px;}
+    .p-price{font-size:14px;}
   }
 
   /* ---------- Admin-Ansicht ---------- */
@@ -1263,16 +1271,8 @@
      1400px-Container greift erst dort, wo tatsaechlich 5-6 Spalten aktiv
      sind — bei 4 Spalten bleibt er bei 1000px, damit die Karten dort nicht
      unnoetig aufgeblaeht werden. */
-  @media (min-width:500px){
-    .product-grid{gap:10px;}
-    .section-wrap{padding:0 16px;}
-    .p-info{padding:9px 10px 11px;}
-    .p-name{font-size:12px;}
-    .p-price{font-size:13px;}
-    .p-buy{height:32px;font-size:10px;}
-  }
   @media (min-width:850px){
-    .section-wrap{max-width:1000px;}
+    .section-wrap{max-width:1000px;padding:0 20px;}
     .collection-section{max-width:1000px;}
     .product-grid{grid-template-columns:repeat(4,1fr);gap:14px;}
     .product-grid-scroll{grid-template-columns:repeat(4,calc((100% - 3*14px) / 4));
