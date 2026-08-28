@@ -34,7 +34,11 @@
   button{font-family:inherit;}
 
   /* ---------- Adaptable per creator: bg image comes from JS config ---------- */
-  html,body{max-width:100%;}
+  /* Scrollbars komplett ausblenden - alle Browser */
+  html,body{max-width:100%;scrollbar-width:none;-ms-overflow-style:none;}
+  html::-webkit-scrollbar,body::-webkit-scrollbar{display:none;width:0;height:0;}
+  *{scrollbar-width:none;-ms-overflow-style:none;}
+  *::-webkit-scrollbar{display:none;width:0;height:0;}
   .page,.collections-wrap,.section-wrap{overflow-x:hidden;}
   .page{position:relative;display:flex;flex-direction:column;padding-top:var(--topbar-h);}
 
@@ -598,19 +602,19 @@
     position:relative;display:flex;flex-direction:column;
     transition:transform .28s cubic-bezier(.2,.8,.2,1), box-shadow .28s ease, border-color .28s ease;}
   .p-thumb{position:relative;aspect-ratio:1/1;background:linear-gradient(135deg,#f1f2f5,#e6e8ec);overflow:hidden;border-radius:15px 15px 0 0;flex:0 0 auto;}
-  .p-info{padding:6px 7px 8px;border-radius:0 0 15px 15px;flex:1 1 auto;display:flex;flex-direction:column;}
-  .p-buy-row{flex-direction:column;gap:4px;margin-top:auto;padding-top:5px;}
+  /* FESTE Hoehe -> alle Karten sind garantiert exakt gleich hoch,
+     unabhaengig von Namenslaenge, Tag oder Preis */
+  .p-info{padding:6px 7px 8px;border-radius:0 0 15px 15px;
+    height:78px;box-sizing:border-box;flex:0 0 78px;
+    display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;}
+  .p-buy-row{display:flex;flex-direction:column;gap:4px;margin-top:auto;}
 
   /* Home-Kategorie-Vorschau: reine Scroll-Ergaenzung zum bestehenden Grid.
-     Nur grid-auto-flow (Karten fliessen in Spalten statt Zeilen umzubrechen)
-     und overflow-x sind neu — grid-template-columns/gap/Kartengroesse bleiben
-     exakt die des normalen Grids (alle Breakpoints unten gelten unveraendert
-     mit), dadurch sieht die erste sichtbare Reihe optisch identisch zu
-     vorher aus, zusaetzliche Produkte ragen einfach seitlich raus und werden
-     per Scroll erreichbar statt in einer zweiten Zeile zu erscheinen. */
+     gap muss exakt dem Grid-gap (7px) entsprechen, sonst sind die Spalten
+     unterschiedlich breit und die erste Reihe wirkt versetzt. */
   .product-grid-scroll{grid-auto-flow:column;
-    grid-template-columns:repeat(3,calc((100% - 2*var(--pg-gap,10px)) / 3));
-    grid-auto-columns:calc((100% - 2*var(--pg-gap,10px)) / 3);
+    grid-template-columns:repeat(3,calc((100% - 2*7px) / 3));
+    grid-auto-columns:calc((100% - 2*7px) / 3);
     overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;-ms-overflow-style:none;
     scroll-snap-type:x proximity;padding-bottom:2px;}
   .product-grid-scroll::-webkit-scrollbar{display:none;}
@@ -658,8 +662,8 @@
   .p-buy{width:100%;justify-content:center;height:24px;padding:0 4px;font-size:8px;letter-spacing:.04em;}
   @media (min-width:850px){
     .p-buy{width:auto;height:34px;padding:0 14px;font-size:12px;letter-spacing:.06em;}
-    .p-buy-row{flex-direction:row;align-items:center;justify-content:space-between;gap:10px;padding-top:0;margin-top:8px;}
-    .p-info{padding:10px 12px 12px;}
+    .p-buy-row{flex-direction:row;align-items:center;justify-content:space-between;gap:10px;margin-top:auto;}
+    .p-info{padding:10px 12px 12px;height:92px;flex:0 0 92px;}
     .p-name{font-size:13px;}
     .p-price{font-size:14px;}
   }
