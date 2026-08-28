@@ -28,6 +28,11 @@
     --topbar-h:78px;
   }
   *{box-sizing:border-box;}
+  /* Verhindert das iOS/Safari-Kontextmenu ("In Fotos sichern", "Kopieren", ...)
+     beim Long-Press auf ein Bild (Produktkarten, Avatare, Logos etc.) sowie
+     das Markieren/Ziehen von Bildern in jedem Browser. */
+  img{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;
+    -webkit-user-drag:none;user-drag:none;}
   html{scroll-padding-top:var(--topbar-h);}
   body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);}
   a{color:inherit;text-decoration:none;}
@@ -113,7 +118,10 @@
   }
   .creator-avatar{background-image:linear-gradient(135deg,#ffd76e,#ff9d7a);color:#5a3d1a;}
   .brand-avatar{background:#fff;color:var(--accent);border-color:#fff;overflow:hidden;}
-  .brand-avatar::before{background:var(--accent);opacity:.28;}
+  /* Der blaue Schein-Effekt von .avatar::before (fuer den Creator-Avatar
+     gedacht, damit ein Foto weich ausblutet) wirkt hinter dem weissen
+     Logo-Kreis nur wie ein stoerender blauer Fleck/Quadrat — hier aus. */
+  .brand-avatar::before{display:none;}
   .brand-avatar img{width:100%;height:100%;object-fit:contain;padding:10px;display:block;mix-blend-mode:multiply;}
   .brand-avatar img[src*="data:image/png"]{mix-blend-mode:normal;padding:8px;}
   .brand-avatar img.fit-cover{object-fit:cover;padding:0;}
@@ -649,6 +657,7 @@
     width:100%;min-width:0;}
   .p-card{background:var(--card);border:1px solid var(--border);border-radius:16px;
     position:relative;display:flex;flex-direction:column;min-width:0;
+    -webkit-tap-highlight-color:transparent;
     transition:transform .28s cubic-bezier(.2,.8,.2,1), box-shadow .28s ease, border-color .28s ease;}
   .p-thumb{position:relative;aspect-ratio:1/1;background:linear-gradient(135deg,#f1f2f5,#e6e8ec);overflow:hidden;border-radius:15px 15px 0 0;flex:0 0 auto;}
   .p-info{padding:6px 7px 8px;border-radius:0 0 15px 15px;flex:1 1 auto;display:flex;flex-direction:column;}
@@ -676,7 +685,12 @@
   body.all-products-view .hero,
   body.all-products-view .badge-row{display:none;}
   body.all-products-view .tab-bar-wrap{margin-top:22px;}
-  .p-card:hover{transform:translateY(-5px);box-shadow:0 16px 32px rgba(20,22,26,.14);border-color:rgba(59,102,245,.35);z-index:4;}
+  /* (hover:hover) greift nur bei echten Zeigegeraeten mit Maus — auf Touch/
+     Handy bleibt der Hover-Zustand nach dem Antippen sonst haengen (der
+     blaue Rahmen faerbt sich ein und bleibt so, bis man woanders hintippt). */
+  @media (hover:hover){
+    .p-card:hover{transform:translateY(-5px);box-shadow:0 16px 32px rgba(20,22,26,.14);border-color:rgba(59,102,245,.35);z-index:4;}
+  }
   @media (prefers-reduced-motion: reduce){ .p-card{transition:none;} }
 
   /* Sprung aus der Suche: die Zielkarte hebt sich kurz hervor, damit sofort
