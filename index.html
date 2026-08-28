@@ -35,13 +35,24 @@
 
   /* ---------- Adaptable per creator: bg image comes from JS config ---------- */
   /* Scrollbars komplett ausblenden - alle Browser */
-  html,body{max-width:100%;overflow-x:hidden;scrollbar-width:none;-ms-overflow-style:none;}
+  /* Wurzel-Fix gegen den horizontalen Rechts-Versatz: html/body duerfen
+     NIEMALS seitlich scrollen. overscroll-behavior-x unterbindet zusaetzlich
+     das Weiterreichen einer Scrollgeste an ein Elternelement (das genaue
+     Verhalten, das iOS/Android-WebViews sonst beim Antippen eines Buttons
+     am Rand einer inneren Scrollleiste zeigen koennen). */
+  html,body{max-width:100%;width:100%;overflow-x:hidden;overscroll-behavior-x:none;
+    scrollbar-width:none;-ms-overflow-style:none;}
   html::-webkit-scrollbar,body::-webkit-scrollbar{display:none;width:0;height:0;}
   *{scrollbar-width:none;-ms-overflow-style:none;}
   *::-webkit-scrollbar{display:none;width:0;height:0;}
   .page,.collections-wrap,.section-wrap{overflow-x:hidden;}
-  .page{position:relative;display:flex;flex-direction:column;padding-top:var(--topbar-h);min-width:0;}
-  .page > *{min-width:0;}
+  .page{position:relative;display:flex;flex-direction:column;padding-top:var(--topbar-h);
+    min-width:0;width:100%;max-width:100vw;overflow-x:hidden;}
+  .page > *{min-width:0;max-width:100%;}
+  /* Jede innere horizontale Scrollleiste (Style-Tabs, Kategorien, Preis-
+     Unterfilter, Produktkarussells) darf nur sich selbst scrollen, nie die
+     Seite darunter mitziehen. */
+  .tab-bar,.cat-row,.subcat-row,.product-grid-scroll{overscroll-behavior-x:contain;}
 
   /* Feste Kopfzeile: im Ruhezustand transparent ueber dem Hero-Bild, wird solide
      sobald man scrollt (Klasse .is-solid, siehe JS) — sonst ueberlappt sie beim
@@ -477,15 +488,18 @@
     .breadcrumb,.top-icons{transition:none;}
   }
 
-  .tab-bar-wrap{max-width:640px;margin:26px auto 0;padding:0 16px;}
-  .tab-bar{display:flex;gap:21px;overflow-x:auto;border-bottom:1px solid var(--border);}
-  .tab-item{flex:0 0 auto;background:none;border:none;color:var(--muted);font-weight:800;letter-spacing:.06em;text-transform:uppercase;font-size:13px;padding:13px 0;cursor:pointer;white-space:nowrap;position:relative;transition:color .15s ease;}
+  .tab-bar-wrap{width:100%;max-width:640px;margin:26px auto 0;padding:0 16px;min-width:0;}
+  .tab-bar{display:flex;gap:21px;overflow-x:auto;-webkit-overflow-scrolling:touch;
+    border-bottom:1px solid var(--border);min-width:0;scroll-snap-type:x proximity;}
+  .tab-item{flex:0 0 auto;scroll-snap-align:start;background:none;border:none;color:var(--muted);font-weight:800;letter-spacing:.06em;text-transform:uppercase;font-size:13px;padding:13px 0;cursor:pointer;white-space:nowrap;position:relative;transition:color .15s ease;}
   .tab-item:hover{color:var(--text);}
   .tab-item.active{color:var(--accent);}
   .tab-item.active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;background:var(--accent);border-radius:2px;}
 
-  .cat-row-wrap{max-width:640px;margin:8px auto 0;padding:0 16px;}
-  .cat-row{overflow-x:auto;}
+  .cat-row-wrap{width:100%;max-width:640px;margin:8px auto 0;padding:0 16px;min-width:0;}
+  .cat-row{overflow-x:auto;-webkit-overflow-scrolling:touch;min-width:0;
+    scroll-snap-type:x proximity;}
+
 
   /* ---------- Preis-Filter ---------- */
   .price-filter-wrap{position:relative;}
@@ -549,7 +563,7 @@
   .tab-bar,.cat-row{scrollbar-width:none;-ms-overflow-style:none;}
   .tab-bar::-webkit-scrollbar,.cat-row::-webkit-scrollbar{display:none;}
   .cat-row{display:flex;gap:6px;justify-content:flex-start;overflow-x:auto;padding:4px 4px 8px;}
-  .cat-item{display:flex;flex-direction:column;align-items:center;gap:5px;flex:0 0 auto;cursor:pointer;background:none;border:none;}
+  .cat-item{display:flex;flex-direction:column;align-items:center;gap:5px;flex:0 0 auto;scroll-snap-align:start;cursor:pointer;background:none;border:none;}
   .cat-circle{width:56px;height:56px;border-radius:999px;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:20px;transition:border-color .15s ease;}
   .cat-circle{overflow:hidden;position:relative;}
   .cat-circle svg{width:26px;height:26px;color:var(--cat-icon);transition:color .15s ease;}
@@ -564,7 +578,8 @@
 
   /* Mindesthoehe, damit die Filterleiste beim Kategoriewechsel immer ganz
      nach oben scrollen kann — auch bei Kategorien mit wenigen Produkten */
-  .section-wrap{max-width:640px;margin:34px auto 60px;padding:0 16px;min-height:calc(100vh - 260px);}
+  .section-wrap{width:100%;max-width:640px;margin:34px auto 60px;padding:0 16px;
+    min-height:calc(100vh - 260px);min-width:0;overflow-x:hidden;}
   .collections-wrap{width:100%;}
   .collection-section{max-width:640px;margin:0 auto 24px;padding:0 20px;}
   .collection-section:first-child{margin-top:34px;}
@@ -599,7 +614,8 @@
      Spalten passen garantiert auf jede Bildschirmbreite, auch das kleinste
      verbreitete Handy (320px) — die Karten werden dort einfach schmaler
      statt dass eine Spalte wegfaellt. */
-  .product-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;align-items:stretch;}
+  .product-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;align-items:stretch;
+    width:100%;min-width:0;}
   .p-card{background:var(--card);border:1px solid var(--border);border-radius:16px;
     position:relative;display:flex;flex-direction:column;
     transition:transform .28s cubic-bezier(.2,.8,.2,1), box-shadow .28s ease, border-color .28s ease;}
@@ -1977,25 +1993,36 @@ if(CREATOR.bgImageUrl){
 
 const catRow = document.getElementById("catRow");
 function renderCatRow(){
+  // Scrollposition der Kategorie-Leiste beim Neuzeichnen erhalten (gleicher
+  // Grund wie bei renderStyleTabs) — sonst reisst ein Re-Render die Leiste
+  // zurueck auf 0 und der Klick auf "Tops" wirkt visuell versetzt.
+  const prevScroll = catRow.scrollLeft;
   catRow.innerHTML = "";
   CATEGORIES.forEach(c=>{
     const btn = document.createElement("button");
+    btn.type = "button";
     btn.className = "cat-item" + (activeCat===c.key ? " active":"");
     const inner = c.img
       ? `<img src="${c.img}" alt="${c.label}">`
       : (c.icon || (c.key === "all" ? ICON_GRID : ""));
     const label = T().cats[c.key] || c.label;
     btn.innerHTML = `<span class="cat-circle">${inner}</span><span class="cat-label">${label}</span>`;
-    btn.onclick = ()=>{
+    btn.onclick = (e)=>{
       activeCat = c.key;
       activeSubcat = "all"; // neue Hauptkategorie -> alter Unterkategorie-Filter ergibt keinen Sinn mehr
       renderCatRow();
       renderSubcatRow();
       update();
       scrollToFilters();
+      // Nur innerhalb der Kategorie-Leiste ausrichten, niemals die
+      // Dokumentseite selbst horizontal verschieben.
+      requestAnimationFrame(()=>{
+        e.currentTarget?.scrollIntoView?.({ block:"nearest", inline:"nearest", behavior:"auto" });
+      });
     };
     catRow.appendChild(btn);
   });
+  catRow.scrollLeft = prevScroll;
 }
 
 // Unterkategorien-Leiste: nur sichtbar, wenn die aktive Hauptkategorie welche hat
@@ -2031,14 +2058,30 @@ function renderSubcatRow(){
 
 const styleTabRow = document.getElementById("styleTabRow");
 function renderStyleTabs(){
+  // Bewahrt die aktuelle horizontale Scrollposition der Tableiste beim
+  // Neuzeichnen — sonst springt sie beim Klick auf "ARCHIVE"/"STREETWEAR"
+  // (weit rechts) zurueck an den Anfang und die Buttons verschieben sich.
+  const prevScroll = styleTabRow.scrollLeft;
   styleTabRow.innerHTML = "";
   STYLES.forEach(st=>{
     const btn = document.createElement("button");
+    btn.type = "button";
     btn.className = "tab-item" + (activeStyle===st ? " active":"");
     btn.textContent = st === "ALL" ? T().styleAll : st;   // Wert bleibt "ALL", nur die Anzeige wechselt
-    btn.onclick = ()=>{ activeStyle = st; renderStyleTabs(); update(); };
+    btn.onclick = (e)=>{
+      activeStyle = st;
+      renderStyleTabs();
+      update();
+      // Den angeklickten Tab selbst sanft und NUR innerhalb der Tableiste
+      // in Sicht ruecken (inline:"nearest" haelt die Seite unangetastet) —
+      // verhindert, dass der Browser stattdessen das ganze Dokument scrollt.
+      requestAnimationFrame(()=>{
+        e.currentTarget?.scrollIntoView?.({ block:"nearest", inline:"nearest", behavior:"auto" });
+      });
+    };
     styleTabRow.appendChild(btn);
   });
+  styleTabRow.scrollLeft = prevScroll;
 }
 
 const productGrid  = document.getElementById("productGrid");
