@@ -177,27 +177,25 @@
     .social-circle:hover{transform:none;}
   }
 
-  @media (max-width:480px){
-    :root{--topbar-h:72px;}
-    .topbar{padding:18px 20px;gap:10px;}
-    .top-icons{gap:6px;}
-    .icon-circle{width:36px;height:36px;}
-    .title{font-size:32px;}
-    .avatar{width:84px;height:84px;font-size:18px;}
-    .brand-avatar img{padding:12px;}
-    .brand-avatar .logo-fallback{font-size:18px;}
-    .cta-row{gap:10px;}
-    .promo-card{padding:10px 14px 10px 10px;gap:11px;}
-    .promo-icon-tile{width:50px;height:50px;border-radius:15px;}
-    .promo-icon-tile img{padding:7px;}
-    .promo-icon-tile .logo-fallback{font-size:16px;}
-    .promo-text{gap:4px;}
-    .promo-line1{font-size:13px;white-space:normal;}
-    .promo-line3{font-size:10px;padding:2px 8px;}
-    .promo-arrow{display:none;}
-    .cat-row{gap:5px;}
-    .cat-circle{width:48px;height:48px;font-size:17px;}
-    .cat-circle svg{width:20px;height:20px;}
+  @media (max-width:849px){
+    /* Hero kompakter */
+    .hero{padding:24px 20px 32px;}
+    .avatar-lockup{margin-bottom:16px;}
+    .avatar{width:80px;height:80px;}
+    .title{font-size:28px;}
+    .cta-row{margin-top:16px;gap:10px;}
+    .social-row{margin-top:10px;}
+    .social-circle{width:44px;height:44px;}
+    .social-circle svg{width:19px;height:19px;}
+
+    /* Badge-Row (Tutorial-Button) weniger Abstand */
+    .badge-row{margin-top:-10px;}
+
+    /* Style-Tabs weniger Abstand */
+    .tab-bar-wrap{margin-top:14px;}
+
+    /* Kategorie-Icons weniger Abstand */
+    .cat-row-wrap{margin-top:8px;}
   }
 
   /* ---------- Rest of the front page (below the banner) ---------- */
@@ -602,12 +600,13 @@
     position:relative;display:flex;flex-direction:column;
     transition:transform .28s cubic-bezier(.2,.8,.2,1), box-shadow .28s ease, border-color .28s ease;}
   .p-thumb{position:relative;aspect-ratio:1/1;background:linear-gradient(135deg,#f1f2f5,#e6e8ec);overflow:hidden;border-radius:15px 15px 0 0;flex:0 0 auto;}
-  /* FESTE Hoehe -> alle Karten sind garantiert exakt gleich hoch,
-     unabhaengig von Namenslaenge, Tag oder Preis */
-  .p-info{padding:6px 7px 8px;border-radius:0 0 15px 15px;
-    height:78px;box-sizing:border-box;flex:0 0 78px;
+  /* GARANTIERT einheitliche Hoehe: feste px, kein flex:1, kein auto.
+     Alle Karten — egal ob Name kurz oder lang, Tag vorhanden oder nicht —
+     haben exakt dieselbe Info-Hoehe und damit dieselbe Gesamthoehe. */
+  .p-info{padding:6px 7px 7px;border-radius:0 0 15px 15px;
+    height:72px;flex:0 0 72px;box-sizing:border-box;
     display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;}
-  .p-buy-row{display:flex;flex-direction:column;gap:4px;margin-top:auto;}
+  .p-buy-row{display:flex;flex-direction:column;gap:3px;}
 
   /* Home-Kategorie-Vorschau: reine Scroll-Ergaenzung zum bestehenden Grid.
      gap muss exakt dem Grid-gap (7px) entsprechen, sonst sind die Spalten
