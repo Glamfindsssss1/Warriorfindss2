@@ -116,7 +116,6 @@
   .brand-avatar::before{background:var(--accent);opacity:.28;}
   .brand-avatar img{width:100%;height:100%;object-fit:contain;padding:10px;display:block;mix-blend-mode:multiply;}
   .brand-avatar img[src*="data:image/png"]{mix-blend-mode:normal;padding:8px;}
-  .brand-avatar img[src*="data:image/png"]{padding:10px;}
   .brand-avatar img.fit-cover{object-fit:cover;padding:0;}
   .brand-avatar .logo-fallback{font-size:22px;}
   .x-sep{font-size:20px;color:var(--muted);font-weight:600;}
@@ -617,7 +616,7 @@
   .product-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;align-items:stretch;
     width:100%;min-width:0;}
   .p-card{background:var(--card);border:1px solid var(--border);border-radius:16px;
-    position:relative;display:flex;flex-direction:column;
+    position:relative;display:flex;flex-direction:column;min-width:0;
     transition:transform .28s cubic-bezier(.2,.8,.2,1), box-shadow .28s ease, border-color .28s ease;}
   .p-thumb{position:relative;aspect-ratio:1/1;background:linear-gradient(135deg,#f1f2f5,#e6e8ec);overflow:hidden;border-radius:15px 15px 0 0;flex:0 0 auto;}
   .p-info{padding:6px 7px 8px;border-radius:0 0 15px 15px;flex:1 1 auto;display:flex;flex-direction:column;}
@@ -7316,16 +7315,28 @@ const bootSafetyNet = setTimeout(()=>{
   document.body.classList.remove("creator-loading");
 }, 8000);
 
+// boot() laeuft nicht nur beim ersten Seitenaufruf, sondern wird von der
+// Admin-Oberflaeche auch intern erneut aufgerufen, um die Website nach
+// Aenderungen (z.B. "Zurueck zur Website", Produkt gespeichert) mit den
+// frischen Daten neu aufzubauen. wireSignupPopup() und das page_view-Tracking
+// duerfen dabei aber nur beim allerersten echten Aufruf laufen — sonst haeufen
+// sich bei jeder Admin-Aktion weitere Klick-/Tastatur-Listener auf dem
+// Anmelde-Popup an, und jede interne Aktualisierung wuerde faelschlich als
+// zusaetzlicher Seitenaufruf gezaehlt.
+let hasBootedOnce = false;
 async function boot(){
   try {
     try { await loadData(); } catch(e){ console.error("boot(): loadData() fehlgeschlagen:", e); }
     applyCreator();
     applyLang();        // setzt Sprache, baut Tabs, Kategorien und Raster
     applyView(false);
-    wireSignupPopup();
-    // Seitenaufruf nur zaehlen, wenn wirklich ein echter Creator geladen wurde —
-    // sonst wuerde jeder fehlerhafte/leere Aufruf faelschlich mitgezaehlt.
-    if(CREATOR_ROW) trackEvent("page_view", CREATOR_ROW.slug);
+    if(!hasBootedOnce){
+      hasBootedOnce = true;
+      wireSignupPopup();
+      // Seitenaufruf nur zaehlen, wenn wirklich ein echter Creator geladen wurde —
+      // sonst wuerde jeder fehlerhafte/leere Aufruf faelschlich mitgezaehlt.
+      if(CREATOR_ROW) trackEvent("page_view", CREATOR_ROW.slug);
+    }
   } catch(e) {
     // Egal was in applyCreator/applyLang/applyView/wireSignupPopup schiefgeht:
     // der Fehler landet sichtbar in der Konsole statt die Seite stumm leer zu lassen.
