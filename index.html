@@ -35,12 +35,13 @@
 
   /* ---------- Adaptable per creator: bg image comes from JS config ---------- */
   /* Scrollbars komplett ausblenden - alle Browser */
-  html,body{max-width:100%;scrollbar-width:none;-ms-overflow-style:none;}
+  html,body{max-width:100%;overflow-x:hidden;scrollbar-width:none;-ms-overflow-style:none;}
   html::-webkit-scrollbar,body::-webkit-scrollbar{display:none;width:0;height:0;}
   *{scrollbar-width:none;-ms-overflow-style:none;}
   *::-webkit-scrollbar{display:none;width:0;height:0;}
   .page,.collections-wrap,.section-wrap{overflow-x:hidden;}
-  .page{position:relative;display:flex;flex-direction:column;padding-top:var(--topbar-h);}
+  .page{position:relative;display:flex;flex-direction:column;padding-top:var(--topbar-h);min-width:0;}
+  .page > *{min-width:0;}
 
   /* Feste Kopfzeile: im Ruhezustand transparent ueber dem Hero-Bild, wird solide
      sobald man scrollt (Klasse .is-solid, siehe JS) — sonst ueberlappt sie beim
