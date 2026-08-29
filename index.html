@@ -2109,7 +2109,7 @@ function renderCatRow(){
     btn.type = "button";
     btn.className = "cat-item" + (activeCat===c.key ? " active":"");
     const inner = c.img
-      ? `<img src="${c.img}" alt="${c.label}" loading="lazy">`
+      ? `<img src="${c.img}" alt="${c.label}">`
       : (c.icon || (c.key === "all" ? ICON_GRID : ""));
     const label = T().cats[c.key] || c.label;
     btn.innerHTML = `<span class="cat-circle">${inner}</span><span class="cat-label">${label}</span>`;
@@ -2429,16 +2429,47 @@ function renderSectionHead(){
   productCount.hidden = !inSubView;
 }
 
-function buildProductCard(p){
+// So viele Produktbilder pro Raster laden sofort -- deckt in etwa ab, was auf
+// den meisten Bildschirmgroessen ohne Scrollen sichtbar ist.
+const EAGER_IMAGE_COUNT = 8;
+
+// Fuer die restlichen Bilder reicht das native loading="lazy" nicht: Browser
+// laden dabei oft erst kurz bevor ein Bild sichtbar wird nach, was bei
+// schnellem Scrollen (v.a. auf dem Handy) als kurzes Nachpoppen auffaellt.
+// Dieser IntersectionObserver startet das Laden stattdessen schon 1000px
+// VOR dem sichtbaren Bereich (grosszuegiger Vorlauf in Scrollrichtung) --
+// bei normalem Scrolltempo ist das Bild dann laengst fertig, wenn es
+// tatsaechlich in Sicht kommt. Ein Bild wird ueber data-src zurueckgehalten
+// (kein src = kein Laden) und bekommt sein echtes src erst, wenn es in
+// diesen Vorlaufbereich eintritt; danach wird es nicht mehr beobachtet.
+const lazyImageObserver = ("IntersectionObserver" in window)
+  ? new IntersectionObserver((entries)=>{
+      entries.forEach(entry=>{
+        if(!entry.isIntersecting) return;
+        const img = entry.target;
+        img.src = img.dataset.src;
+        img.removeAttribute("data-src");
+        lazyImageObserver.unobserve(img);
+      });
+    }, { rootMargin: "1000px 0px" })
+  : null;
+
+function buildProductCard(p, indexInGrid = 0){
   const isWished = pageWishlist.includes(p.id);
   const t = T();
   const label = t.buy;
   const card = document.createElement("div");
   card.className = "p-card";
   card.dataset.id = p.id;
+  // Ohne IntersectionObserver-Unterstuetzung (sehr alte Browser) oder unter
+  // dem Eager-Limit: ganz normal sofort laden, kein Vorlauf-Trick noetig.
+  const isEager = indexInGrid < EAGER_IMAGE_COUNT || !lazyImageObserver;
+  const imgTag = !p.img ? "" : isEager
+    ? `<img class="p-img" src="${p.img}" alt="">`
+    : `<img class="p-img p-img-lazy" data-src="${p.img}" alt="">`;
   card.innerHTML = `
     <div class="p-thumb">
-      ${p.img ? `<img class="p-img" src="${p.img}" alt="" loading="lazy">` : ""}
+      ${imgTag}
       ${p.discountLabel ? `<span class="p-discount-badge" style="background:${p.discountColor||'#e11d48'}">${p.discountLabel}</span>` : ""}
       <button class="p-heart ${isWished?'active':''}" type="button" aria-pressed="${isWished}"
               aria-label="${isWished ? t.wishRemove : t.wishAdd}: ${p.name}">${isWished?'\u2665':'\u2661'}</button>
@@ -2480,6 +2511,11 @@ function buildProductCard(p){
     // weiter — trotzdem keepalive nutzen (wireImageDropZone-Prinzip: einheitlich
     // und robust, unabhaengig davon ob der Browser den Tab-Wechsel synchron macht).
     buyLink.addEventListener("click", ()=> trackEvent("product_buy_click", CREATOR_ROW.slug, p.id));
+  }
+
+  if(!isEager){
+    const lazyImg = card.querySelector(".p-img-lazy");
+    if(lazyImg) lazyImageObserver.observe(lazyImg);
   }
 
   return card;
@@ -2550,7 +2586,7 @@ function renderCollections(){
     });
 
     const grid = section.querySelector(".product-grid");
-    preview.forEach(p => grid.appendChild(buildProductCard(p)));
+    preview.forEach((p, i) => grid.appendChild(buildProductCard(p, i)));
 
     collectionsRoot.appendChild(section);
   });
@@ -2564,6 +2600,19 @@ function renderCollections(){
   }
 }
 
+// Anzahl Karten, die pro Portion gerendert werden. Ohne dieses Limit wuerde
+// z.B. "Alle ansehen" bei einem Creator mit mehreren tausend Produkten auf
+// einen Schlag ebenso viele DOM-Karten aufbauen -- das laesst den Browser kurz
+// einfrieren, besonders auf dem Handy. Stattdessen wird nur eine Portion
+// gerendert und die naechste automatisch beim Herunterscrollen nachgelegt.
+const RENDER_CHUNK_SIZE = 30;
+
+// Beobachtet ein unsichtbares Element am Ende der bisher geladenen Karten. Kommt
+// es in die Naehe des sichtbaren Bereichs, wird die naechste Portion angehaengt --
+// fuehlt sich fuer den Nutzer wie eine ganz normale, durchgehende Liste an, ganz
+// ohne "Mehr laden"-Klick. Wird bei jedem renderProducts()-Aufruf neu aufgesetzt.
+let productGridLoadObserver = null;
+
 function renderProducts(){
   const all = filtered();
   // Nur ohne aktive Kategorie/Style-Filterung wird auf previewCount begrenzt —
@@ -2573,6 +2622,11 @@ function renderProducts(){
   const noFilterActive = activeCat === "all" && activeStyle === "ALL";
   const items = (viewAll || wishOnly || !noFilterActive) ? all : all.slice(0, CREATOR.previewCount);
   productGrid.innerHTML = "";
+
+  if(productGridLoadObserver){
+    productGridLoadObserver.disconnect();
+    productGridLoadObserver = null;
+  }
 
   if(!items.length){
     const t = T();
@@ -2606,7 +2660,55 @@ function renderProducts(){
     return;
   }
 
-  items.forEach(p => productGrid.appendChild(buildProductCard(p)));
+  // Ohne IntersectionObserver-Unterstuetzung (sehr alte Browser) gibt es keinen
+  // verlaesslichen Scroll-Trigger -- dann lieber alles sofort rendern, statt dem
+  // Nutzer Karten vorzuenthalten, die nie nachgeladen werden.
+  if(!("IntersectionObserver" in window)){
+    items.forEach((p, i) => productGrid.appendChild(buildProductCard(p, i)));
+    return;
+  }
+
+  let renderedCount = 0;
+  const sentinel = document.createElement("div");
+  sentinel.style.gridColumn = "1 / -1";
+  sentinel.style.height = "1px";
+
+  function renderNextChunk(){
+    const end = Math.min(renderedCount + RENDER_CHUNK_SIZE, items.length);
+    for(let i = renderedCount; i < end; i++){
+      productGrid.appendChild(buildProductCard(items[i], i));
+    }
+    renderedCount = end;
+
+    if(renderedCount >= items.length){
+      productGridLoadObserver.disconnect();
+      productGridLoadObserver = null;
+      sentinel.remove();
+      return;
+    }
+
+    // Neu ans Ende haengen und neu beobachten, damit der Observer den
+    // Intersection-Status an der neuen Position frisch prueft -- sonst wuerde
+    // er kein weiteres Ereignis feuern, wenn das Element schon vorher (an alter
+    // Position) als sichtbar galt.
+    productGridLoadObserver.unobserve(sentinel);
+    productGrid.appendChild(sentinel);
+    productGridLoadObserver.observe(sentinel);
+  }
+
+  productGridLoadObserver = new IntersectionObserver((entries)=>{
+    if(entries.some(e => e.isIntersecting)) renderNextChunk();
+  }, { rootMargin: "600px 0px" });
+
+  renderNextChunk();
+
+  if(renderedCount < items.length){
+    productGrid.appendChild(sentinel);
+    productGridLoadObserver.observe(sentinel);
+  } else {
+    productGridLoadObserver.disconnect();
+    productGridLoadObserver = null;
+  }
 }
 
 function update(){
@@ -3989,8 +4091,16 @@ function buildAdminProductRows(items, all, catLabel){
 // "..." abzuschneiden, schrumpft die Schrift in kleinen Schritten, bis er
 // passt (oder die Mindestgroesse erreicht ist), damit der volle Titel
 // lesbar bleibt statt gekuerzt zu werden.
-function fitRowTitles(){
-  document.querySelectorAll(".a-row-title").forEach(el=>{
+// Ohne `rows` werden alle .a-row-title im Dokument geprueft (z.B. nach einem
+// kompletten Dashboard-Rebuild). Mit `rows` (Array von Zeilen-Elementen) nur
+// die darin enthaltenen -- gebraucht beim portionsweisen Nachladen der
+// Produktliste, damit nicht bei jeder neuen Portion wieder ALLE bisher schon
+// passend gemachten Titel erneut geprueft werden.
+function fitRowTitles(rows){
+  const els = rows
+    ? rows.map(r => r.querySelector(".a-row-title")).filter(Boolean)
+    : Array.from(document.querySelectorAll(".a-row-title"));
+  els.forEach(el=>{
     el.style.fontSize = "";
     const min = 11;
     let size = parseFloat(getComputedStyle(el).fontSize);
@@ -4001,6 +4111,68 @@ function fitRowTitles(){
   });
 }
 
+// Anzahl Zeilen, die pro Portion in der Admin-Produktliste gerendert werden.
+// Ohne dieses Limit wuerde z.B. ein Creator mit mehreren tausend Produkten die
+// komplette Zeilenliste (inkl. Eingabefeldern, Drag-Griffen etc.) auf einen
+// Schlag aufbauen -- das laesst die Admin-Oberflaeche kurz haengen. Stattdessen
+// wird nur eine Portion gerendert und die naechste beim Herunterscrollen
+// automatisch nachgelegt (gleiches Muster wie im Storefront-Produktgrid).
+const ADMIN_ROW_CHUNK_SIZE = 50;
+let adminListLoadObserver = null;
+
+// Ersetzt den Inhalt von listEl mit den Zeilen fuer `items`, aber portionsweise
+// statt auf einen Schlag -- siehe ADMIN_ROW_CHUNK_SIZE oben.
+function renderAdminProductRows(listEl, items, all, catLabel){
+  if(adminListLoadObserver){
+    adminListLoadObserver.disconnect();
+    adminListLoadObserver = null;
+  }
+  listEl.innerHTML = "";
+
+  // Kein Treffer, oder sehr alter Browser ohne IntersectionObserver (kein
+  // verlaesslicher Scroll-Trigger verfuegbar): alles sofort rendern, statt
+  // Zeilen vorzuenthalten, die nie nachgeladen wuerden.
+  if(!items.length || !("IntersectionObserver" in window)){
+    listEl.innerHTML = buildAdminProductRows(items, all, catLabel);
+    fitRowTitles();
+    return;
+  }
+
+  let renderedCount = 0;
+  const sentinel = document.createElement("div");
+  sentinel.style.height = "1px";
+  listEl.appendChild(sentinel);
+
+  function renderNextChunk(){
+    const end = Math.min(renderedCount + ADMIN_ROW_CHUNK_SIZE, items.length);
+    const temp = document.createElement("div");
+    temp.innerHTML = buildAdminProductRows(items.slice(renderedCount, end), all, catLabel);
+    const newRows = Array.from(temp.children);
+    newRows.forEach(row => listEl.insertBefore(row, sentinel));
+    renderedCount = end;
+    fitRowTitles(newRows);
+
+    if(renderedCount >= items.length){
+      adminListLoadObserver.disconnect();
+      adminListLoadObserver = null;
+      sentinel.remove();
+      return;
+    }
+
+    // Erneut beobachten, damit der Observer den Intersection-Status an der
+    // aktuellen Position frisch prueft -- sonst wuerde er kein weiteres
+    // Ereignis feuern, wenn das Element schon vorher als sichtbar galt.
+    adminListLoadObserver.unobserve(sentinel);
+    adminListLoadObserver.observe(sentinel);
+  }
+
+  adminListLoadObserver = new IntersectionObserver((entries)=>{
+    if(entries.some(e => e.isIntersecting)) renderNextChunk();
+  }, { rootMargin: "600px 0px" });
+
+  renderNextChunk();
+}
+
 // Aktualisiert nur die Liste + Zaehler, ohne renderDashboard() komplett neu zu bauen \u2014
 // so behaelt das Suchfeld beim Tippen den Fokus (kein kompletter innerHTML-Rebuild).
 function refreshAdminProductList(){
@@ -4009,8 +4181,7 @@ function refreshAdminProductList(){
   if(!listEl || !subEl) return;
   const catLabel = k => (state.categories.find(c => c.key === k) || {}).label || k;
   const items = filteredAdminProducts();
-  listEl.innerHTML = buildAdminProductRows(items, state.products, catLabel);
-  fitRowTitles();
+  renderAdminProductRows(listEl, items, state.products, catLabel);
 
   const total = state.products.length;
   const shown = items.length;
@@ -4448,9 +4619,7 @@ function renderDashboard(){
                   ${(productFilterCat==="all" && productFilterStyle==="all" && productFilterQuery.trim()==="") ? "hidden" : ""}>Filter zurücksetzen</button>
         </div>` : ""}
 
-        <div class="a-list" id="list">
-          ${buildAdminProductRows(filteredAdminProducts(), state.products, catLabel)}
-        </div>
+        <div class="a-list" id="list"></div>
       </div>` : `
       <div class="a-card"><p class="a-empty">Leg oben deinen ersten Creator an, dann kannst du Produkte hinzufügen.</p></div>`}
     </div>`;
@@ -6525,6 +6694,13 @@ function wireSubcatDragReorder(){
 
 function wireDashboard(){
   fitRowTitles();
+
+  const listEl = document.getElementById("list");
+  if(listEl){
+    const catLabel = k => (state.categories.find(c => c.key === k) || {}).label || k;
+    renderAdminProductRows(listEl, filteredAdminProducts(), state.products, catLabel);
+  }
+
   document.getElementById("brandBackToSite").onclick = async ()=>{
     closeAdmin();
     await boot();          // frisch gespeicherte Produkte gleich auf der Website zeigen
@@ -6879,6 +7055,51 @@ function wireDashboard(){
     refresh();
   };
 
+  // Verkleinert ein hochgeladenes Bild im Browser, BEVOR es hochgeladen wird --
+  // angezeigt wird es auf der Seite ohnehin nie groesser als eine kleine Kachel,
+  // das Originalfoto direkt vom Handy (oft mehrere MB) bringt also keinerlei
+  // sichtbaren Vorteil, nur unnoetig lange Ladezeit und hohen Speicherverbrauch
+  // (das duerfte auch der Grund fuer das gemeldete kurze "Verschwinden" von
+  // Bildern beim Scrollen auf iOS Safari sein: der Browser wirft bei zu vielen
+  // grossen Bildern welche aus dem Speicher und muss sie beim Wiedersichtbarwerden
+  // neu entschluesseln). Am sichtbaren Ergebnis auf der Seite aendert sich dadurch
+  // NICHTS -- nur die Datei dahinter wird kleiner:
+  //  - PNG bleibt PNG (Transparenz von Logos/Avataren darf nicht verloren gehen),
+  //    wird aber auf die Zielmasse herunterskaliert.
+  //  - alles andere (i.d.R. Fotos direkt von der Kamera) wird als JPEG mit hoher
+  //    Qualitaet neu komprimiert, das schrumpft am meisten.
+  // Schlaegt irgendein Schritt fehl (z.B. sehr alter Browser ohne createImageBitmap),
+  // wird einfach die Originaldatei genommen -- der Upload soll daran nie scheitern.
+  const IMAGE_MAX_DIMENSION = 1000; // px, laengste Seite -- reicht fuer jede Anzeigegroesse auf der Seite
+  const IMAGE_JPEG_QUALITY = 0.82;
+  const IMAGE_SKIP_BELOW_BYTES = 300 * 1024; // schon kleine Dateien nicht extra anfassen
+
+  async function compressImageForUpload(file){
+    if(!file.type.startsWith("image/") || file.type === "image/svg+xml") return file;
+    if(file.size <= IMAGE_SKIP_BELOW_BYTES) return file;
+    try{
+      const bitmap = await createImageBitmap(file);
+      const scale = Math.min(1, IMAGE_MAX_DIMENSION / Math.max(bitmap.width, bitmap.height));
+      const w = Math.max(1, Math.round(bitmap.width * scale));
+      const h = Math.max(1, Math.round(bitmap.height * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      canvas.getContext("2d").drawImage(bitmap, 0, 0, w, h);
+      bitmap.close?.();
+
+      const keepsPng = file.type === "image/png";
+      const mime = keepsPng ? "image/png" : "image/jpeg";
+      const quality = keepsPng ? undefined : IMAGE_JPEG_QUALITY;
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, mime, quality));
+      if(!blob || blob.size >= file.size) return file; // keine echte Ersparnis -- Original behalten
+
+      const newName = keepsPng ? file.name : file.name.replace(/\.\w+$/, "") + ".jpg";
+      return new File([blob], newName, { type: mime });
+    } catch {
+      return file;
+    }
+  }
+
   // Ein Upload-Helfer fuer alle drei Bildfelder statt drei Kopien
   function wireUpload(inputId, labelId, previewId, folder, onDone){
     const input = document.getElementById(inputId);
@@ -6890,9 +7111,10 @@ function wireDashboard(){
       const before = lbl.textContent;
       lbl.textContent = "L\u00e4dt hoch \u2026";
 
-      const ext  = (f.name.split(".").pop() || "jpg").toLowerCase();
+      const compressed = await compressImageForUpload(f);
+      const ext  = (compressed.name.split(".").pop() || "jpg").toLowerCase();
       const path = `${folder}/${crypto.randomUUID()}.${ext}`;
-      const { error } = await sb.storage.from("products").upload(path, f, { cacheControl:"31536000" });
+      const { error } = await sb.storage.from("products").upload(path, compressed, { cacheControl:"31536000" });
       if(error){ lbl.textContent = before; return atoast("Upload: " + error.message, "err"); }
 
       const url  = sb.storage.from("products").getPublicUrl(path).data.publicUrl;
@@ -6915,11 +7137,12 @@ function wireDashboard(){
     if(!f) return;
     const status = document.getElementById("p-uploadlabel");
     status.textContent = "Lädt hoch …";
-    const ext = (f.name.split(".").pop() || "jpg").toLowerCase();
+    const compressed = await compressImageForUpload(f);
+    const ext = (compressed.name.split(".").pop() || "jpg").toLowerCase();
     const active = state.creators.find(c => c.id === state.activeId);
     const path = `${active ? active.slug : "alle-creator"}/${crypto.randomUUID()}.${ext}`;
 
-    const { error } = await sb.storage.from("products").upload(path, f, { cacheControl:"31536000" });
+    const { error } = await sb.storage.from("products").upload(path, compressed, { cacheControl:"31536000" });
     if(error){ status.textContent = "Bild wählen"; return atoast("Upload: " + error.message, "err"); }
 
     uploadedUrl = sb.storage.from("products").getPublicUrl(path).data.publicUrl;
@@ -6952,11 +7175,12 @@ function wireDashboard(){
     if(!f) return;
     const status = document.getElementById("e-uploadlabel");
     status.textContent = "Lädt hoch …";
-    const ext = (f.name.split(".").pop() || "jpg").toLowerCase();
+    const compressed = await compressImageForUpload(f);
+    const ext = (compressed.name.split(".").pop() || "jpg").toLowerCase();
     const active = state.creators.find(c => c.id === state.activeId);
     const path = `${active ? active.slug : "alle-creator"}/${crypto.randomUUID()}.${ext}`;
 
-    const { error } = await sb.storage.from("products").upload(path, f, { cacheControl:"31536000" });
+    const { error } = await sb.storage.from("products").upload(path, compressed, { cacheControl:"31536000" });
     if(error){ status.textContent = "Bild ändern"; return atoast("Upload: " + error.message, "err"); }
 
     editedImageUrl = sb.storage.from("products").getPublicUrl(path).data.publicUrl;
