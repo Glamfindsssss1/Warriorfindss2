@@ -414,6 +414,10 @@
     overflow:hidden;}
   .promo-bar-icon svg{width:20px;height:20px;}
   .promo-bar-icon img{width:100%;height:100%;object-fit:cover;}
+  /* Weisser Grund fuer das YouTube-Logo statt der Creator-Akzentfarbe --
+     passend zum roten/weissen Logo, wie beim Tutorial-Button im Hero. */
+  body.promo-bar-is-tutorial .promo-bar-icon{background:#fff;border:1px solid var(--border);}
+  body.promo-bar-is-tutorial .promo-bar-icon svg{width:26px;height:19px;}
   .promo-bar-text{flex:1 1 auto;min-width:0;}
   .promo-bar-name{font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .promo-bar-sub{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -421,6 +425,9 @@
     color:#fff;font-weight:800;font-size:13px;border-radius:999px;padding:9px 14px;text-decoration:none;
     white-space:nowrap;transition:filter .15s ease;}
   .promo-bar-cta:hover{filter:brightness(.94);}
+  /* Tutorial-Variante: Button-Farbe ist immer rot, unabhaengig von der
+     individuellen Theme-/Promo-Farbe des Creators. */
+  body.promo-bar-is-tutorial .promo-bar-cta{background:#e11d48;}
   .promo-bar-cta svg{width:15px;height:15px;flex:0 0 auto;}
   .promo-bar-close{flex:0 0 auto;width:30px;height:30px;border-radius:999px;border:none;background:transparent;
     color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;}
@@ -1454,14 +1461,6 @@
 </head>
 <body>
 
-<!-- Temporaeres Diagnose-Banner: zeigt Lade-/Skriptfehler direkt sichtbar auf
-     der Seite an (statt nur in der Browser-Konsole), damit man den Fehler
-     auch per Screenshot mitteilen kann, ohne Entwicklertools zu oeffnen.
-     Sobald der Bug gefunden ist, kann dieses Banner wieder entfernt werden. -->
-<div id="bootErrorBanner" hidden style="position:fixed;top:0;left:0;right:0;z-index:99999;
-  background:#c0152f;color:#fff;font:600 12px/1.5 -apple-system,Segoe UI,Roboto,sans-serif;
-  padding:10px 14px;max-height:45vh;overflow:auto;white-space:pre-wrap;"></div>
-
 <div class="topbar-fixed" id="topbarFixed">
   <header class="topbar">
     <div class="breadcrumb">
@@ -1695,19 +1694,6 @@
 // lief (siehe boot() ganz unten) — verhindert den kurzen Blitz der leeren
 // Platzhalterwerte aus dem CREATOR-Objekt weiter unten in diesem Script.
 document.body.classList.add("creator-loading");
-
-// ---------- Temporaeres Diagnose-Banner (siehe Kommentar bei #bootErrorBanner) ----------
-function showBootError(msg){
-  const el = document.getElementById("bootErrorBanner");
-  if(!el) return;
-  el.hidden = false;
-  el.textContent += (el.textContent ? "\n" : "") + msg;
-}
-// Faengt auch Fehler ab, die AUSSERHALB von boot()'s eigenem try/catch passieren
-// (z.B. beim initialen Skript-Parsen) -- sonst bliebe die Seite dann stumm leer,
-// ohne dass irgendwo ein Hinweis zu sehen waere.
-window.addEventListener("error", e => showBootError("window.onerror: " + e.message + " (" + (e.filename||"").split("/").pop() + ":" + e.lineno + ")"));
-window.addEventListener("unhandledrejection", e => showBootError("unhandledrejection: " + (e.reason && e.reason.message ? e.reason.message : e.reason)));
 
 // ---------- Sprachen ----------
 // Produktnamen und die beiden Promo-Zeilen bleiben absichtlich draussen:
@@ -1959,15 +1945,18 @@ function slugFromPath(){
 let SLUG = slugFromPath() || new URLSearchParams(location.search).get("creator");
 let CREATOR_ROW = null;
 
-// Bewusst OHNE Marken-Namen als Platzhalter: bis applyCreator() die echten
-// Supabase-Daten eingesetzt hat, bleibt der Hero-Bereich per .creator-loading
-// unsichtbar (siehe oben) -- taucht dieses Objekt trotzdem mal sichtbar auf
-// (z.B. weil das Laden fehlschlug), soll dort keine fremde Platzhalter-Marke
-// wie zuvor "Sashimi Closet" zu sehen sein, sondern einfach nichts.
+// Bewusst OHNE Marken-Namen als Platzhalter (name/handle): bis applyCreator()
+// die echten Supabase-Daten eingesetzt hat, bleibt der Hero-Bereich per
+// .creator-loading unsichtbar (siehe oben) -- taucht dieses Objekt trotzdem
+// mal sichtbar auf (z.B. weil das Laden fehlschlug), soll dort keine fremde
+// Platzhalter-Marke wie zuvor "Sashimi" zu sehen sein, sondern einfach nichts.
+// nameSub ("Closet") ist dagegen bewusst FEST für jeden Creator gleich --
+// kommt aus keiner Datenbank-Spalte, sondern haengt hier immer als fester
+// Zusatz hinter dem jeweiligen echten Creator-Namen (z.B. "Cocofinds Closet").
 const CREATOR = {
   name: "",
   handle: "",
-  nameSub: "",
+  nameSub: "Closet",
   avatarUrl: "",            // z.B. "https://.../avatar.jpg" — bei leer wird Farbverlauf + Initiale gezeigt
   avatarInitial: "",
   bgImageUrl: "",           // z.B. gleiche URL wie avatarUrl, wird geblurt als Hintergrund genutzt
@@ -2663,6 +2652,37 @@ const RENDER_CHUNK_SIZE = 30;
 // ohne "Mehr laden"-Klick. Wird bei jedem renderProducts()-Aufruf neu aufgesetzt.
 let productGridLoadObserver = null;
 
+// Ist kein bestimmter Style ausgewaehlt ("Alle Styles"), werden Produkte nicht
+// einfach nach sort_order gezeigt (das wuerde den zuerst angelegten Style
+// bevorzugen), sondern gestaffelt: immer 9 Produkte vom ersten Style (Reihen-
+// folge wie in der Style-Leiste), danach 9 vom naechsten, usw. im Kreis, bis
+// alle Produkte einsortiert sind. Produkte ganz ohne Style-Tag bilden dabei
+// einen eigenen, letzten "Style"-Block.
+const STAGGER_CHUNK_SIZE = 9;
+function staggerByStyle(items){
+  const styleOrder = STYLES.slice(1); // STYLES[0] ist immer "ALL", zaehlt nicht als eigener Style
+  const buckets = styleOrder.map(s => items.filter(p => p.style === s));
+  const noStyle = items.filter(p => !styleOrder.includes(p.style));
+  if(noStyle.length) buckets.push(noStyle);
+
+  const result = [];
+  const cursors = buckets.map(()=>0);
+  let remaining = items.length;
+  while(remaining > 0){
+    let tookAnyThisRound = false;
+    buckets.forEach((bucket, i)=>{
+      if(cursors[i] >= bucket.length) return;
+      const chunk = bucket.slice(cursors[i], cursors[i] + STAGGER_CHUNK_SIZE);
+      result.push(...chunk);
+      cursors[i] += chunk.length;
+      remaining -= chunk.length;
+      tookAnyThisRound = true;
+    });
+    if(!tookAnyThisRound) break; // Sicherheitsnetz, sollte hier eigentlich nie greifen
+  }
+  return result;
+}
+
 function renderProducts(){
   const all = filtered();
   // Nur ohne aktive Kategorie/Style-Filterung wird auf previewCount begrenzt —
@@ -2670,7 +2690,8 @@ function renderProducts(){
   // zu "alle Tops", was bei aktivem Filter keinen Sinn ergibt. Filtert man also,
   // sieht man sofort alles Passende, ohne Zwischenschritt.
   const noFilterActive = activeCat === "all" && activeStyle === "ALL";
-  const items = (viewAll || wishOnly || !noFilterActive) ? all : all.slice(0, CREATOR.previewCount);
+  let items = (viewAll || wishOnly || !noFilterActive) ? all : all.slice(0, CREATOR.previewCount);
+  if(activeStyle === "ALL") items = staggerByStyle(items);
   productGrid.innerHTML = "";
 
   if(productGridLoadObserver){
@@ -7775,6 +7796,9 @@ async function loadData(){
 
   const howtoUrl   = CREATOR_ROW.howto_url   || settingsRow?.howto_url   || "";
   const howtoLabel = CREATOR_ROW.howto_label || settingsRow?.howto_label || "(TUTORIAL) HOW TO BUY FROM 🇨🇳";
+  // Auf CREATOR gemerkt, damit die Tutorial-Promo-Leiste (siehe wireSignupPopup)
+  // denselben Link verwenden kann, ohne loadData() erneut abzufragen.
+  CREATOR.howtoUrl = howtoUrl;
 
   const howtoBtn = document.getElementById("howtoBtn");
   if(howtoBtn){
@@ -7954,6 +7978,30 @@ function wireSignupPopup(){
     ctaTextEl.textContent = pct ? `${pct[1]}% Coupon` : "Coupon sichern";
   }
 
+  const YT_ICON_SVG = `<svg viewBox="0 0 28 20" aria-hidden="true" focusable="false">
+    <path fill="#FF0000" d="M27.4 3.1A3.5 3.5 0 0 0 24.9.6C22.7 0 14 0 14 0S5.3 0 3.1.6A3.5 3.5 0 0 0 .6 3.1C0 5.3 0 10 0 10s0 4.7.6 6.9a3.5 3.5 0 0 0 2.5 2.5C5.3 20 14 20 14 20s8.7 0 10.9-.6a3.5 3.5 0 0 0 2.5-2.5C28 14.7 28 10 28 10s0-4.7-.6-6.9z"/>
+    <path fill="#fff" d="M11.2 14.3 18.5 10l-7.3-4.3z"/>
+  </svg>`;
+
+  // Zweite Promo-Leiste, die dieselbe Leiste (nur mit anderem Inhalt) fuer den
+  // YouTube-Tutorial-Link wirbt -- erscheint 10s nachdem die Affiliate-Leiste
+  // geschlossen wurde (siehe scheduleTutorialPromoBar unten). Nutzt denselben
+  // Link wie der Tutorial-Button im Hero-Bereich (CREATOR.howtoUrl).
+  function fillTutorialPromoBar(){
+    const iconEl = document.getElementById("promoBarIcon");
+    const nameEl = document.getElementById("promoBarName");
+    const subEl  = document.getElementById("promoBarSub");
+    const ctaEl  = document.getElementById("promoBarCta");
+    const ctaTextEl = document.getElementById("promoBarCtaText");
+
+    iconEl.innerHTML = YT_ICON_SVG;
+    const providerName = (creatorAffiliate && AFFILIATE_AGENTS[creatorAffiliate.agentId]?.displayName) || "HipoBuy";
+    nameEl.textContent = `HOW TO BUY FROM ${providerName} 🎉`;
+    subEl.textContent = "Learn how to order safely from China";
+    ctaEl.href = CREATOR.howtoUrl || "#";
+    ctaTextEl.textContent = "TUTORIAL";
+  }
+
   function openPromoBar(){
     if(document.body.classList.contains("promo-bar-open")) return; // schon offen
     if(document.body.classList.contains("admin-open")) return;
@@ -7961,8 +8009,28 @@ function wireSignupPopup(){
     document.body.classList.add("promo-bar-open");
   }
 
+  function openTutorialPromoBar(){
+    if(document.body.classList.contains("promo-bar-open")) return; // schon offen
+    if(document.body.classList.contains("admin-open")) return;
+    if(!CREATOR.howtoUrl) return; // kein Tutorial-Link fuer diesen Creator hinterlegt
+    fillTutorialPromoBar();
+    document.body.classList.add("promo-bar-open", "promo-bar-is-tutorial");
+  }
+
+  // Nur einmal pro Seitenaufruf ausloesen, nicht nach jedem Schliessen erneut.
+  let tutorialPromoScheduled = false;
+  function scheduleTutorialPromoBar(){
+    if(tutorialPromoScheduled) return;
+    tutorialPromoScheduled = true;
+    setTimeout(openTutorialPromoBar, 10000);
+  }
+
   function closePromoBar(){
-    document.body.classList.remove("promo-bar-open");
+    // War gerade die Affiliate-Leiste offen (nicht die Tutorial-Leiste selbst),
+    // startet das Schliessen den 10s-Countdown fuer die Tutorial-Leiste.
+    const wasTutorial = document.body.classList.contains("promo-bar-is-tutorial");
+    document.body.classList.remove("promo-bar-open", "promo-bar-is-tutorial");
+    if(!wasTutorial) scheduleTutorialPromoBar();
   }
 
   document.getElementById("promoBarClose").addEventListener("click", closePromoBar);
@@ -7996,10 +8064,7 @@ const bootSafetyNet = setTimeout(()=>{
 let hasBootedOnce = false;
 async function boot(){
   try {
-    try { await loadData(); } catch(e){
-      console.error("boot(): loadData() fehlgeschlagen:", e);
-      showBootError("loadData() fehlgeschlagen: " + (e && e.message ? e.message : e));
-    }
+    try { await loadData(); } catch(e){ console.error("boot(): loadData() fehlgeschlagen:", e); }
     applyCreator();
     applyLang();        // setzt Sprache, baut Tabs, Kategorien und Raster
     applyView(false);
@@ -8010,17 +8075,10 @@ async function boot(){
       // sonst wuerde jeder fehlerhafte/leere Aufruf faelschlich mitgezaehlt.
       if(CREATOR_ROW) trackEvent("page_view", CREATOR_ROW.slug);
     }
-    // Sollte trotz des Fallbacks in loadData() (unbekannter Slug -> Standard-
-    // Creator) immer noch kein Creator geladen sein (z.B. echter Netzwerk-/
-    // Datenbankfehler), ist das ein echtes Problem und wird sichtbar gemeldet.
-    if(!CREATOR_ROW){
-      showBootError("boot(): CREATOR_ROW ist leer nach loadData(). SLUG=" + JSON.stringify(SLUG));
-    }
   } catch(e) {
     // Egal was in applyCreator/applyLang/applyView/wireSignupPopup schiefgeht:
     // der Fehler landet sichtbar in der Konsole statt die Seite stumm leer zu lassen.
     console.error("boot(): unerwarteter Fehler beim Start:", e);
-    showBootError("boot() unerwarteter Fehler: " + (e && e.message ? e.message : e) + (e && e.stack ? "\n" + e.stack.split("\n").slice(0,3).join("\n") : ""));
   } finally {
     // Egal ob alles glattlief oder ein Fehler auftrat: applyCreator() lief in
     // jedem Fall mit dem bestmoeglichen Stand (echte Daten oder zumindest
