@@ -257,6 +257,10 @@
     color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
     text-decoration:none;cursor:pointer;touch-action:manipulation;
     transition:border-color .18s ease, color .18s ease;}
+  /* .howto-btn{display:inline-flex} hat dieselbe Spezifitaet wie die
+     Browser-Standardregel fuer [hidden] und steht im Code danach -- ohne
+     diese Regel bliebe der Button trotz hidden-Attribut sichtbar. */
+  .howto-btn[hidden]{display:none;}
   .howto-btn:hover{border-color:#d0d3da;color:var(--text);}
   .howto-btn:focus-visible{outline:3px solid rgba(59,102,245,.4);outline-offset:2px;}
   .howto-yt{width:18px;height:13px;flex:0 0 auto;display:block;opacity:.85;}
@@ -2021,6 +2025,31 @@ function slugFromPath(){
 let SLUG = slugFromPath() || new URLSearchParams(location.search).get("creator");
 let CREATOR_ROW = null;
 
+// Baut die oeffentliche Storefront-URL aus einem Slug -- genutzt sowohl im
+// Admin-Bearbeiten-Formular (Live-Vorschau beim Tippen) als auch im immer
+// sichtbaren Link-Bereich fuer den aktuell ausgewaehlten Creator.
+// WICHTIG: nutzt bewusst das ?creator=slug-Format statt eines sauberen Pfads
+// (/slug) -- laeuft die Seite (wie aktuell) unter einem Unterordner, z.B.
+// GitHub Pages als username.github.io/kk/, wuerde ein saubererer Pfad wie
+// .../kk/cocofinds von GitHub direkt mit 404 beantwortet (nie bei index.html
+// ankommen), weil dort keine echte Datei/kein Ordner "cocofinds" existiert.
+// Das Query-Format bleibt dagegen IMMER im selben Verzeichnis wie index.html
+// und funktioniert deshalb unabhaengig davon, ob die Seite auf einer
+// Domain-Wurzel oder einem Unterordner laeuft. slugFromPath() unterstuetzt
+// sauberere Pfade weiterhin als Fallback, falls mal auf eine echte
+// Domain-Wurzel mit Server-Rewrite umgezogen wird.
+// Fallback-Domain fuer file://-Tests, wo window.location.origin nicht brauchbar ist.
+function buildShareLink(slug){
+  if(!slug) return "";
+  if(window.location.origin === "null" || window.location.origin.startsWith("file://")){
+    return `https://stylefinder.com/?creator=${encodeURIComponent(slug)}`;
+  }
+  // Verzeichnis, in dem index.html liegt -- alles nach dem letzten "/" im
+  // Pfad abschneiden (deckt sowohl "/kk/" als auch "/kk/index.html" ab).
+  const dir = window.location.pathname.replace(/[^/]*$/, "");
+  return `${window.location.origin}${dir}?creator=${encodeURIComponent(slug)}`;
+}
+
 // Bewusst OHNE Marken-Namen als Platzhalter (name/handle): bis applyCreator()
 // die echten Supabase-Daten eingesetzt hat, bleibt der Hero-Bereich per
 // .creator-loading unsichtbar (siehe oben) -- taucht dieses Objekt trotzdem
@@ -2730,31 +2759,42 @@ let productGridLoadObserver = null;
 
 // Ist kein bestimmter Style ausgewaehlt ("Alle Styles"), werden Produkte nicht
 // einfach nach sort_order gezeigt (das wuerde den zuerst angelegten Style
-// bevorzugen), sondern gestaffelt: immer 9 Produkte vom ersten Style (Reihen-
-// folge wie in der Style-Leiste), danach 9 vom naechsten, usw. im Kreis, bis
-// alle Produkte einsortiert sind. Produkte ganz ohne Style-Tag bilden dabei
-// einen eigenen, letzten "Style"-Block.
+// bevorzugen), sondern gestaffelt: immer bis zu 9 Produkte aus einem Style am
+// Stueck, danach wechselt der Block zum Style mit der naechst-vordersten
+// Position, usw. bis alle Produkte einsortiert sind. Produkte ganz ohne
+// Style-Tag bilden dabei einen eigenen "Style"-Block.
+// Welcher Style-Block als naechstes drankommt, richtet sich nach der echten
+// Position (sort_order) seines vordersten noch nicht ausgegebenen Produkts —
+// NICHT nach der festen Reihenfolge der Style-Reiter. Ein im Admin ganz nach
+// oben verschobenes Produkt erscheint dadurch auch hier zuerst, unabhaengig
+// davon, welcher Style-Reiter zuerst kommt (sonst haette "Position: oben" in
+// dieser Ansicht keine sichtbare Wirkung gehabt).
 const STAGGER_CHUNK_SIZE = 9;
 function staggerByStyle(items){
   const styleOrder = STYLES.slice(1); // STYLES[0] ist immer "ALL", zaehlt nicht als eigener Style
-  const buckets = styleOrder.map(s => items.filter(p => p.style === s));
-  const noStyle = items.filter(p => !styleOrder.includes(p.style));
+  // items kommt bereits sort_order-sortiert von der DB -- der Index hier dient
+  // als Rang-Ersatz, weil das gemappte Produktobjekt sort_order selbst nicht mitfuehrt.
+  const withRank = items.map((p, rank) => ({ p, rank }));
+  const buckets = styleOrder.map(s => withRank.filter(x => x.p.style === s));
+  const noStyle = withRank.filter(x => !styleOrder.includes(x.p.style));
   if(noStyle.length) buckets.push(noStyle);
 
   const result = [];
   const cursors = buckets.map(()=>0);
   let remaining = items.length;
   while(remaining > 0){
-    let tookAnyThisRound = false;
+    let pick = -1, pickRank = Infinity;
     buckets.forEach((bucket, i)=>{
       if(cursors[i] >= bucket.length) return;
-      const chunk = bucket.slice(cursors[i], cursors[i] + STAGGER_CHUNK_SIZE);
-      result.push(...chunk);
-      cursors[i] += chunk.length;
-      remaining -= chunk.length;
-      tookAnyThisRound = true;
+      const rank = bucket[cursors[i]].rank;
+      if(rank < pickRank){ pickRank = rank; pick = i; }
     });
-    if(!tookAnyThisRound) break; // Sicherheitsnetz, sollte hier eigentlich nie greifen
+    if(pick === -1) break; // Sicherheitsnetz, sollte hier eigentlich nie greifen
+    const bucket = buckets[pick];
+    const chunk = bucket.slice(cursors[pick], cursors[pick] + STAGGER_CHUNK_SIZE);
+    result.push(...chunk.map(x => x.p));
+    cursors[pick] += chunk.length;
+    remaining -= chunk.length;
   }
   return result;
 }
@@ -2858,8 +2898,19 @@ function renderProducts(){
   }
 }
 
-function update(){
-  const isHome = !viewAll && !wishOnly && activeCat === "all" && activeStyle === "ALL";
+async function update(){
+  let isHome = !viewAll && !wishOnly && activeCat === "all" && activeStyle === "ALL";
+  if(!isHome && !productsFullyLoaded){
+    // Nicht-Home-Ansichten (Kategorie/Style/Suche/"Alle ansehen") brauchen den
+    // vollstaendigen Katalog fuer korrekte Filterung/Staffelung. Laeuft der
+    // Hintergrund-Nachladevorgang (siehe loadRemainingProducts) noch, kurz
+    // darauf warten (in der Praxis meist deutlich unter 1s) statt mit
+    // unvollstaendigen Daten zu rendern.
+    await productsFullLoadPromise;
+    // Waehrend des Wartens koennte der Nutzer laengst zurueck zur Startseite
+    // gewechselt haben — dann bleibt es dabei, kein verspätetes Umschalten.
+    isHome = !viewAll && !wishOnly && activeCat === "all" && activeStyle === "ALL";
+  }
   const singleSectionWrap = document.getElementById("singleSectionWrap");
   collectionsRoot.hidden = !isHome;
   singleSectionWrap.hidden = isHome;
@@ -3596,9 +3647,10 @@ let subcatAdminCategoryKey = null;
 
 // Filter fuer die Produktliste im Admin — wichtig bei grossen Katalogen (100+ Produkte).
 // Bleiben ueber Re-Renders hinweg erhalten, werden aber beim Creator-Wechsel zurueckgesetzt.
-let productFilterCat   = "all";
-let productFilterStyle = "all";
-let productFilterQuery = "";
+let productFilterCat    = "all";
+let productFilterSubcat = "all";
+let productFilterStyle  = "all";
+let productFilterQuery  = "";
 
 const aesc = (s) => String(s ?? "").replace(/[&<>"']/g, c =>
   ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
@@ -3700,7 +3752,13 @@ function renderAdminError(e){
 // Intern heissen die Supabase-Spalten anders (category ist ein Key kein Label,
 // style_tag statt style, product_url statt weidian_url) — die beiden Mapper
 // unten sind die einzige Stelle, die diesen Unterschied kennen muss.
-const CSV_COLUMNS = ["title", "price", "category", "style", "image_url", "weidian_url"];
+// "id" und "creator" sind optional beim Import: leer/fehlend -> neues Produkt
+// anlegen (wie bisher). Ist "id" gesetzt UND passt zu einem bestehenden
+// Produkt, wird stattdessen dessen Zeile aktualisiert (siehe importProductsFromCSV) --
+// so lassen sich z.B. pro Creator unterschiedliche Weidian-Links (unterschiedliche
+// Shops fuer dasselbe Produkt) per CSV-Export/-Bearbeiten/-Re-Import pflegen,
+// ohne dass jede Kopie einzeln im Admin angeklickt werden muss.
+const CSV_COLUMNS = ["id", "creator", "title", "price", "category", "subcategory", "style", "image_url", "weidian_url"];
 
 function csvEscapeField(v){
   const s = v === null || v === undefined ? "" : String(v);
@@ -3710,14 +3768,19 @@ function csvEscapeField(v){
 }
 
 // Ein einzelner Produkt-Datensatz (Supabase-Row) -> eine CSV-Zeile nach aussen.
-// catLabel wandelt den internen category-Key ("tops") in das lesbare Label
-// ("Tops") um, das auch im Formular angezeigt wird — der Import unten macht
-// den Weg zurueck.
-function productToCsvRow(p, catLabel){
+// catLabel/subcatLabel wandeln die internen Keys ("tops"/"hoodie") in die
+// lesbaren Labels ("Tops"/"Hoodie") um, die auch im Formular angezeigt
+// werden — der Import unten macht den Weg zurueck. creatorLabel identifiziert,
+// zu welchem Creator diese konkrete Kopie gehoert (wichtig im "Alle
+// Creator"-Export, wo jede Kopie ihren eigenen Weidian-Link haben kann).
+function productToCsvRow(p, catLabel, subcatLabel, creatorLabel){
   return [
+    p.id ?? "",
+    creatorLabel ?? "",
     p.title ?? "",
     p.price ?? 0,
     catLabel(p.category) ?? p.category ?? "",
+    p.subcategory ? (subcatLabel(p.category, p.subcategory) ?? p.subcategory) : "",
     p.style_tag ?? "",
     p.image_url ?? "",
     p.product_url ?? ""
@@ -3727,24 +3790,36 @@ function productToCsvRow(p, catLabel){
 // Baut den kompletten CSV-Text (inkl. Header) aus den aktuell im Dashboard
 // geladenen Produkten (state.products deckt bereits den aktiven Modus ab —
 // einzelner Creator oder "Alle Creator").
-function buildProductsCsv(products){
+function buildProductsCsv(products, creatorLabelFor){
   const catLabel = k => (state.categories.find(c => c.key === k) || {}).label || k;
+  // Unterkategorie-Keys sind nur INNERHALB ihrer Kategorie eindeutig (siehe
+  // subcategories-Schema) -- deshalb hier immer beide zusammen nachschlagen.
+  const subcatLabel = (catKey, subKey) =>
+    (state.subcategories.find(s => s.key === subKey && s.category_key === catKey) || {}).label;
   const lines = [CSV_COLUMNS.join(",")];
-  products.forEach(p => lines.push(productToCsvRow(p, catLabel)));
+  products.forEach(p => lines.push(productToCsvRow(p, catLabel, subcatLabel, creatorLabelFor ? creatorLabelFor(p) : "")));
   // CRLF, weil Excel (haeufigstes Ziel fuer CSV-Backups) damit zuverlaessiger
   // umgeht als mit reinem \n.
   return lines.join("\r\n");
 }
 
 // Startet den Browser-Download der aktuell geladenen Produkte als CSV-Backup.
-// Nutzt state.products direkt — kein erneuter Supabase-Aufruf noetig, das
-// Dashboard haelt die Liste ohnehin schon aktuell im Speicher.
-function exportProductsToCSV(){
-  if(!state.products.length){
+// Nicht im "Alle Creator"-Modus verfuegbar (Button dort ausgeblendet) -- bei
+// vielen Creatorn mit grossen Katalogen waere das ein riesiger Export, der den
+// Tab beim Zusammenbauen haengen lassen koennte. Pro Creator einzeln bleibt
+// unproblematisch.
+async function exportProductsToCSV(){
+  if(state.activeId === ALL_CREATOR_ID){
+    atoast("CSV-Export ist im „Alle Creator“-Modus nicht verfügbar — bitte erst einen einzelnen Creator auswählen.", "err");
+    return;
+  }
+  const products = state.products;
+
+  if(!products.length){
     atoast("Keine Produkte zum Exportieren in dieser Ansicht.", "err");
     return;
   }
-  const csv = buildProductsCsv(state.products);
+  const csv = buildProductsCsv(products);
   // BOM voranstellen, damit Umlaute in Excel korrekt als UTF-8 erkannt werden
   // statt als Mojibake zu erscheinen — reines ASCII-CSV braucht das nicht,
   // aber Produkttitel/Style-Namen sind hier oft deutsch.
@@ -3761,7 +3836,7 @@ function exportProductsToCSV(){
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
-  atoast(`${state.products.length} ${state.products.length === 1 ? "Produkt" : "Produkte"} exportiert.`);
+  atoast(`${products.length} ${products.length === 1 ? "Produkt" : "Produkte"} exportiert.`);
 }
 
 // Minimaler, aber RFC-4180-tauglicher CSV-Parser: respektiert Anfuehrungszeichen
@@ -3802,16 +3877,16 @@ function mapCsvHeader(headerRow){
   return idx;
 }
 
-// Liest eine hochgeladene CSV-Datei ein und legt die enthaltenen Produkte
-// gebuendelt (ein einziger Insert) fuer den aktuell aktiven Creator an.
-// Nicht im "Alle Creator"-Modus verfuegbar — dort ist unklar, bei welchem
-// Creator die importierten Zeilen landen sollten (siehe Aufrufstelle).
+// Liest eine hochgeladene CSV-Datei ein. Zeilen mit ausgefuellter "id"-Spalte
+// (aus einem vorherigen Export) werden als UPDATE der bestehenden Zeile
+// behandelt, Zeilen ohne "id" als neues Produkt beim aktuell aktiven Creator
+// angelegt. Nicht im "Alle Creator"-Modus verfuegbar (Button dort ausgeblendet).
 async function importProductsFromCSV(file){
   const statusEl = document.getElementById("csvImportStatus");
   const setStatus = (msg, isErr) => { if(statusEl){ statusEl.textContent = msg; statusEl.style.color = isErr ? "#e0524a" : ""; } };
 
   if(state.activeId === ALL_CREATOR_ID){
-    setStatus("Bulk-Import ist im \u201eAlle Creator\u201c-Modus nicht verfuegbar \u2014 bitte erst einen einzelnen Creator ausw\u00e4hlen.", true);
+    setStatus("CSV-Import ist im \u201eAlle Creator\u201c-Modus nicht verf\u00fcgbar \u2014 bitte erst einen einzelnen Creator ausw\u00e4hlen.", true);
     return;
   }
 
@@ -3827,7 +3902,6 @@ async function importProductsFromCSV(file){
   }
 
   const idx = mapCsvHeader(rows[0]);
-  const missing = ["title", "price", "category", "style", "image_url", "weidian_url"].filter(c => !(c in idx));
   // title und category sind fuer eine gueltige Produktzeile unverzichtbar
   // (category muss auf einen bestehenden Key passen) — die uebrigen Spalten
   // duerfen fehlen und werden dann einfach leer/0 importiert.
@@ -3842,8 +3916,17 @@ async function importProductsFromCSV(file){
     catByLabelOrKey.set(c.label.toLowerCase(), c.key);
   });
 
+  // Unterkategorie-Keys sind nur innerhalb ihrer Kategorie eindeutig -- der
+  // Lookup-Schluessel kombiniert deshalb category_key + Name/Key.
+  const subcatByLabelOrKey = new Map();
+  state.subcategories.forEach(s => {
+    subcatByLabelOrKey.set(s.category_key + "|" + s.key.toLowerCase(), s.key);
+    subcatByLabelOrKey.set(s.category_key + "|" + s.label.toLowerCase(), s.key);
+  });
+
   const last0 = state.products.reduce((m,p)=> Math.max(m, p.sort_order ?? 0), 0);
   const toInsert = [];
+  const toUpdate = [];
   const skipped = [];
 
   rows.slice(1).forEach((r, i) => {
@@ -3856,67 +3939,111 @@ async function importProductsFromCSV(file){
       return;
     }
     const priceRaw = idx.price !== undefined ? (r[idx.price] ?? "").replace(",", ".") : "";
-    toInsert.push({
+    const rawSubcategory = idx.subcategory !== undefined ? (r[idx.subcategory] ?? "").trim() : "";
+    const subcategoryKey = rawSubcategory
+      ? (subcatByLabelOrKey.get(categoryKey + "|" + rawSubcategory.toLowerCase()) || null)
+      : null;
+    if(rawSubcategory && !subcategoryKey){
+      skipped.push(`Zeile ${i+2}: Unterkategorie "${rawSubcategory}" nicht bei Kategorie "${rawCategory}" gefunden`);
+      return;
+    }
+    const fields = {
       title,
       price: Number(priceRaw) || 0,
       category: categoryKey,
+      subcategory: subcategoryKey,
       style_tag: idx.style !== undefined ? (r[idx.style] ?? "").trim() || null : null,
       image_url: idx.image_url !== undefined ? (r[idx.image_url] ?? "").trim() || null : null,
-      product_url: idx.weidian_url !== undefined ? (r[idx.weidian_url] ?? "").trim() || null : null,
+      product_url: idx.weidian_url !== undefined ? (r[idx.weidian_url] ?? "").trim() || null : null
+    };
+
+    const rowId = idx.id !== undefined ? (r[idx.id] ?? "").trim() : "";
+    if(rowId){
+      toUpdate.push({ id: rowId, ...fields });
+      return;
+    }
+
+    toInsert.push({
+      ...fields,
       creator_id: state.activeId,
       is_trend: false,
       sort_order: last0 + (toInsert.length + 1) * 10
     });
   });
 
-  if(!toInsert.length){
+  if(!toInsert.length && !toUpdate.length){
     setStatus(skipped.length
       ? `Keine importierbaren Zeilen. ${skipped.length} \u00fcbersprungen \u2014 erste: ${skipped[0]}`
       : "Keine importierbaren Zeilen gefunden.", true);
     return;
   }
 
-  setStatus(`Importiere ${toInsert.length} ${toInsert.length === 1 ? "Produkt" : "Produkte"} \u2026`);
-  const { error } = await sb.from("products").insert(toInsert);
-  if(error){
-    setStatus("Import fehlgeschlagen: " + error.message, true);
-    return;
+  setStatus(`Importiere \u2026`);
+
+  if(toUpdate.length){
+    // Ein Batch-Upsert pro Portion statt eines HTTP-Requests PRO ZEILE --
+    // bei grossen Katalogen (mehrere tausend Zeilen in einer CSV) wuerden
+    // sonst ebenso viele parallele Anfragen abgeschickt, was Browser und API
+    // ueberlastet. upsert() matcht ueber den Primaerschluessel (id) und setzt
+    // nur die mitgelieferten Spalten -- creator_id, sort_order, group_id etc.
+    // bleiben unangetastet.
+    const CHUNK = 500;
+    for(let i = 0; i < toUpdate.length; i += CHUNK){
+      const chunk = toUpdate.slice(i, i + CHUNK);
+      setStatus(`Aktualisiere ${Math.min(i + CHUNK, toUpdate.length)} / ${toUpdate.length} …`);
+      const { error } = await sb.from("products").upsert(chunk);
+      if(error){
+        setStatus("Aktualisieren fehlgeschlagen: " + error.message, true);
+        return;
+      }
+    }
+  }
+
+  if(toInsert.length){
+    // Ebenfalls in Portionen, aus demselben Grund wie beim Update-Batch oben.
+    const CHUNK = 500;
+    for(let i = 0; i < toInsert.length; i += CHUNK){
+      const chunk = toInsert.slice(i, i + CHUNK);
+      setStatus(`Lege an: ${Math.min(i + CHUNK, toInsert.length)} / ${toInsert.length} …`);
+      const { error } = await sb.from("products").insert(chunk);
+      if(error){
+        setStatus("Import fehlgeschlagen: " + error.message, true);
+        return;
+      }
+    }
   }
 
   state.products = await loadProducts(state.activeId);
   render();
-  atoast(`${toInsert.length} ${toInsert.length === 1 ? "Produkt" : "Produkte"} importiert${skipped.length ? " \u2014 " + skipped.length + " Zeile(n) \u00fcbersprungen" : ""}.`);
+  const parts = [];
+  if(toInsert.length) parts.push(`${toInsert.length} neu angelegt`);
+  if(toUpdate.length) parts.push(`${toUpdate.length} aktualisiert`);
+  atoast(`${parts.join(", ")}${skipped.length ? " \u2014 " + skipped.length + " Zeile(n) \u00fcbersprungen" : ""}.`);
 }
 
 async function loadProducts(creatorId){
   if(creatorId === ALL_CREATOR_ID){
     // "Alle Creator"-Ansicht: eine Zeile pro Gruppe, nicht pro echter Kopie —
-    // sonst wuerde ein Gruppen-Produkt bei 5 Creatorn 5x in der Liste auftauchen.
-    const { data, error } = await sb.from("products").select("*")
-      .not("group_id", "is", null)
-      .order("sort_order", { ascending:true })
-      .order("created_at", { ascending:false });
+    // sonst wuerde ein Gruppen-Produkt bei 100 Creatorn 100x in der Liste
+    // auftauchen. Die Dedupe passiert ueber die RPC-Funktion get_grouped_products
+    // SERVERSEITIG (SQL DISTINCT ON) statt hier: bei vielen Creatorn mit
+    // geteiltem Katalog waeren sonst ALLE echten Kopien (z.B. 700.000 Zeilen
+    // bei 100 Creatorn x 7.000 Produkten) erst komplett uebers Netz geladen
+    // worden, nur um sie clientseitig wieder auf ~7.000 zu reduzieren.
+    const { data, error } = await sb.rpc("get_grouped_products");
 
     if(error){
-      // Fehlt die Spalte group_id noch (Migration nicht ausgefuehrt), kaeme hier
-      // sonst eine leere Liste ohne jede Erklaerung zustande — lieber deutlich sagen, woran es liegt.
-      atoast(/group_id/i.test(error.message || "")
-        ? "Die Gruppen-Funktion fehlt noch in der Datenbank (Spalte group_id). Siehe Hinweis im Chat."
+      // Fehlt die Funktion/Spalte group_id noch (Migration nicht ausgefuehrt),
+      // kaeme hier sonst eine leere Liste ohne jede Erklaerung zustande.
+      atoast(/group_id|get_grouped_products/i.test(error.message || "")
+        ? "Die Gruppen-Funktion fehlt noch in der Datenbank. Siehe Hinweis im Chat."
         : error.message, "err");
       groupCounts = new Map();
       return [];
     }
 
-    groupCounts = new Map();
-    const seen = new Set();
-    const groups = [];
-    for(const p of (data ?? [])){
-      groupCounts.set(p.group_id, (groupCounts.get(p.group_id) ?? 0) + 1);
-      if(seen.has(p.group_id)) continue;
-      seen.add(p.group_id);
-      groups.push(p);
-    }
-    return groups;
+    groupCounts = new Map((data ?? []).map(p => [p.group_id, Number(p.copy_count)]));
+    return data ?? [];
   }
   const { data } = await sb.from("products").select("*")
     .eq("creator_id", creatorId)
@@ -4098,10 +4225,19 @@ function filteredAdminProducts(){
   const q = productFilterQuery.trim().toLowerCase();
   return state.products.filter(p=>{
     if(productFilterCat !== "all" && p.category !== productFilterCat) return false;
+    if(productFilterSubcat !== "all" && (p.subcategory || "") !== productFilterSubcat) return false;
     if(productFilterStyle !== "all" && (p.style_tag || "") !== productFilterStyle) return false;
     if(q && !p.title.toLowerCase().includes(q)) return false;
     return true;
   });
+}
+
+// Ob gerade irgendein Admin-Produktfilter aktiv ist -- an einer Stelle
+// gebuendelt, damit bei 4+ Verwendungen nicht eine davon vergessen wird,
+// wenn ein neuer Filter dazukommt (siehe productFilterSubcat).
+function isAdminProductFilterActive(){
+  return productFilterCat !== "all" || productFilterSubcat !== "all"
+      || productFilterStyle !== "all" || productFilterQuery.trim() !== "";
 }
 
 // Baut die Zeilen-HTML fuer eine gegebene (ggf. gefilterte) Produktliste.
@@ -4109,7 +4245,7 @@ function filteredAdminProducts(){
 // tauschen immer echte Nachbarn in dieser Reihenfolge, nie in der gefilterten Ansicht.
 function buildAdminProductRows(items, all, catLabel){
   if(!items.length){
-    const filterActive = productFilterCat !== "all" || productFilterStyle !== "all" || productFilterQuery.trim() !== "";
+    const filterActive = isAdminProductFilterActive();
     const creatorName = (state.creators.find(c=>c.id===state.activeId)||{}).name || "";
     return `<p class="a-empty">${filterActive
       ? "Kein Produkt passt zu diesem Filter."
@@ -4117,11 +4253,11 @@ function buildAdminProductRows(items, all, catLabel){
           ? "Noch keine gemeinsamen Produkte. Leg oben eins an — es landet automatisch bei jedem Creator."
           : `Noch keine Produkte für ${aesc(creatorName)}. Leg oben das erste an.`)}</p>`;
   }
-  const filterActive = productFilterCat !== "all" || productFilterStyle !== "all" || productFilterQuery.trim() !== "";
+  const filterActive = isAdminProductFilterActive();
   const isAllMode = state.activeId === ALL_CREATOR_ID;
   return items.map((p, filteredIndex)=>{
     const i = all.indexOf(p);
-    const filterActive = productFilterCat !== "all" || productFilterStyle !== "all" || productFilterQuery.trim() !== "";
+    const filterActive = isAdminProductFilterActive();
     // Bei aktivem Filter: Nummer innerhalb der gefilterten Ansicht (1,2,3…)
     // Ohne Filter: echte Globalposition
     const pos = filterActive ? filteredIndex + 1 : i + 1;
@@ -4456,6 +4592,23 @@ function renderDashboard(){
           <button class="a-btn a-btn-ghost" id="toggleNew" style="margin-left:auto">+ Neuer Creator</button>
         </div>
 
+        ${(active && !isAllMode) ? `
+        <div class="a-full" style="margin-top:18px">
+          <label class="a-label" for="activeShareLink">Öffentlicher Creator-Link</label>
+          <div class="a-sharelink-row">
+            <div class="a-sharelink-field">
+              <svg class="a-sharelink-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 0 1 0 10h-2"/><path d="M8 12h8"/>
+              </svg>
+              <input id="activeShareLink" class="a-sharelink-input" readonly value="${aesc(buildShareLink(active.slug))}" aria-label="Öffentlicher Creator-Link">
+            </div>
+            <button type="button" class="a-btn a-btn-primary a-sharelink-btn" id="activeShareCopy">
+              ${COPY_SVG}
+              <span id="activeShareCopyLabel">Link kopieren</span>
+            </button>
+          </div>
+        </div>` : ""}
+
         ${isAllMode ? `
         <div class="a-block" style="margin-top:22px">
           <p class="a-block-title">How-to-buy-Button \u2014 Standard f\u00fcr alle</p>
@@ -4648,12 +4801,11 @@ function renderDashboard(){
       </div>
 
       ${(active || isAllMode) ? `
+      ${!isAllMode ? `
       <div class="a-card">
         <div class="a-head">
-          <h2 class="a-h2">Produkt hinzufügen <span class="a-target">\u2192 ${isAllMode ? "Alle Creator" : aesc(active.name)}</span></h2>
-          <p class="a-sub">${isAllMode
-            ? `Wird als unabhängige Kopie bei jedem${state.creators.length ? " (" + state.creators.length + ")" : ""} Creator angelegt \u2014 auch bei künftig neuen.`
-            : "Erscheint danach unten in der Liste und auf der Seite."}</p>
+          <h2 class="a-h2">Produkt hinzufügen <span class="a-target">\u2192 ${aesc(active.name)}</span></h2>
+          <p class="a-sub">Erscheint danach unten in der Liste und auf der Seite.</p>
         </div>
         <form id="productForm" class="a-grid">
           <div><label class="a-label" for="p-title">Titel *</label><input id="p-title" class="a-field" required placeholder="Ralph Lauren Decke">
@@ -4682,6 +4834,16 @@ function renderDashboard(){
             <input id="p-style" class="a-field" list="styles" placeholder="OLDMONEY">
             <datalist id="styles">${state.styles.map(s=>`<option value="${aesc(s.label)}">`).join("")}</datalist>
           </div>
+          <div>
+            <label class="a-label" for="p-position">Position</label>
+            <select id="p-position" class="a-field">
+              <option value="bottom">Ganz unten anhängen</option>
+              <option value="top">Ganz oben anhängen</option>
+              <option value="top25">In obere 25% einsortieren</option>
+              <option value="middle50">In mittlere 50% einsortieren</option>
+              <option value="bottom25">In untere 25% einsortieren</option>
+            </select>
+          </div>
 
           <div class="a-full">
             <label class="a-label" for="p-file">Produktbild</label>
@@ -4701,7 +4863,7 @@ function renderDashboard(){
             <button class="a-btn a-btn-primary" id="saveProduct">Produkt speichern</button>
           </div>
         </form>
-      </div>
+      </div>` : ""}
 
       <div class="a-card">
         <div class="a-head">
@@ -4799,6 +4961,7 @@ function renderDashboard(){
         })()}
       </div>
 
+      ${!isAllMode ? `
       <div class="a-card">
         <div class="a-head">
           <h2 class="a-h2">${isAllMode ? "Gemeinsame Produkte" : "Produkte & Reihenfolge"}</h2>
@@ -4807,6 +4970,7 @@ function renderDashboard(){
             : `Oben in der Liste = oben auf der Seite. ${state.products.length} ${state.products.length === 1 ? "Produkt" : "Produkte"}.`}</p>
         </div>
 
+        ${!isAllMode ? `
         <div class="a-csv-row">
           <button type="button" class="a-btn a-btn-ghost" id="csvExportBtn">
             ${DOWNLOAD_SVG}
@@ -4821,12 +4985,12 @@ function renderDashboard(){
         <div class="a-csv-import-zone" id="csvImportZone" style="display:none">
           <label class="a-upload a-csv-dropzone" id="csvDropZone">
             ${UPLOAD_SVG}
-            <span>CSV-Datei wählen</span>
-            <span class="a-upload-hint">oder hierher ziehen \u2014 Spalten: title, price, category, style, image_url, weidian_url</span>
+            <span>CSV-Datei w\u00e4hlen</span>
+            <span class="a-upload-hint">oder hierher ziehen \u2014 Spalten: id, creator, title, price, category, subcategory, style, image_url, weidian_url. Zeilen mit id (aus einem Export) aktualisieren die bestehende Zeile statt eine neue anzulegen.</span>
             <input id="csvFileInput" type="file" accept=".csv,text/csv">
           </label>
           <p class="a-hint" id="csvImportStatus" style="margin-top:8px"></p>
-        </div>
+        </div>` : ""}
 
         ${state.products.length > 0 ? `
         <div class="a-filter-bar">
@@ -4835,6 +4999,15 @@ function renderDashboard(){
             <select id="filter-cat" class="a-field">
               <option value="all">Alle Kategorien</option>
               ${state.categories.map(c=>`<option value="${aesc(c.key)}" ${productFilterCat===c.key?"selected":""}>${aesc(c.label)}</option>`).join("")}
+            </select>
+          </div>
+          <div class="a-filter-field">
+            <label class="a-label" for="filter-subcat">Unterkategorie</label>
+            <select id="filter-subcat" class="a-field" ${productFilterCat==="all" ? "disabled" : ""}
+                    title="${productFilterCat==="all" ? "Erst eine Kategorie waehlen" : ""}">
+              <option value="all">${productFilterCat==="all" ? "Erst Kategorie wählen" : "Alle Unterkategorien"}</option>
+              ${state.subcategories.filter(s => s.category_key === productFilterCat)
+                .map(s=>`<option value="${aesc(s.key)}" ${productFilterSubcat===s.key?"selected":""}>${aesc(s.label)}</option>`).join("")}
             </select>
           </div>
           <div class="a-filter-field">
@@ -4852,11 +5025,11 @@ function renderDashboard(){
             </div>
           </div>
           <button type="button" class="a-btn a-btn-ghost a-filter-reset" id="filterReset"
-                  ${(productFilterCat==="all" && productFilterStyle==="all" && productFilterQuery.trim()==="") ? "hidden" : ""}>Filter zurücksetzen</button>
+                  ${!isAdminProductFilterActive() ? "hidden" : ""}>Filter zurücksetzen</button>
         </div>` : ""}
 
         <div class="a-list" id="list"></div>
-      </div>` : `
+      </div>` : ""}` : `
       <div class="a-card"><p class="a-empty">Leg oben deinen ersten Creator an, dann kannst du Produkte hinzufügen.</p></div>`}
     </div>`;
 
@@ -6454,11 +6627,109 @@ function wireDragReorder(){
   const list = document.getElementById("list");
   if(!list) return;
 
+  // Der Admin-Bereich ist ein position:fixed-Vollbild-Container mit eigenem
+  // Scroll (#adminRoot) -- nicht die normale Seite. Auto-Scroll beim Ziehen
+  // an den Rand muss deshalb diesen Container scrollen, window.scrollBy
+  // haette hier keine Wirkung.
+  const scrollEl = document.getElementById("adminRoot") || document.scrollingElement;
+
   let dragRow = null, dragId = null, pointerStartY = 0, rowHeight = 0, moved = false;
+  let lastClientY = 0, autoScrollRAF = null, lastSwapAt = 0;
+
+  const AUTOSCROLL_EDGE = 90;      // px vom oberen/unteren Bildschirmrand, ab dem gescrollt wird
+  const AUTOSCROLL_MAX_SPEED = 16; // px pro Frame, direkt am Rand
+  const SWAP_THROTTLE_MS = 90;     // Mindestabstand zwischen zwei Positionstauschen
 
   function rowsInList(){ return Array.from(list.querySelectorAll(":scope > .a-row")); }
 
+  // render() baut #adminRoot komplett neu auf (frisches innerHTML) -- das
+  // setzt die Scrollposition sonst ungefragt auf ganz oben zurueck. Beim
+  // Ablegen einer gezogenen Karte weit unten in einer langen Liste wuerde man
+  // dadurch sofort wieder nach oben "katapultiert", obwohl die Karte selbst
+  // korrekt an der Zielposition landet.
+  function renderKeepScroll(){
+    const y = scrollEl ? scrollEl.scrollTop : 0;
+    render();
+    if(scrollEl) scrollEl.scrollTop = y;
+  }
+
+  function checkSwap(){
+    if(!dragRow) return;
+    // Haertet gegen jede Art von schnell wiederholten Aufrufen ab (z.B. viele
+    // pointermove-Events in kurzer Zeit bei einer schnellen Handbewegung) --
+    // pro Zeitfenster darf sich eine Karte hoechstens um eine Position bewegen,
+    // damit ein kurzer/schneller Drag nicht mehrere Positionen auf einmal
+    // ueberspringt ("Katapult"-Gefuehl).
+    const now = performance.now();
+    if(now - lastSwapAt < SWAP_THROTTLE_MS) return;
+    const dragRect = dragRow.getBoundingClientRect();
+    const dragMid = dragRect.top + dragRect.height / 2;
+
+    const prev = dragRow.previousElementSibling;
+    if(prev && prev.classList.contains("a-row")){
+      const r = prev.getBoundingClientRect();
+      if(dragMid < r.top + r.height / 2){
+        const beforeTop = dragRow.getBoundingClientRect().top;
+        list.insertBefore(dragRow, prev);
+        const afterTop = dragRow.getBoundingClientRect().top;
+        pointerStartY += (afterTop - beforeTop);
+        dragRow.style.transform = `translateY(${lastClientY - pointerStartY}px)`;
+        lastSwapAt = now;
+        return;
+      }
+    }
+    const next = dragRow.nextElementSibling;
+    if(next && next.classList.contains("a-row")){
+      const r = next.getBoundingClientRect();
+      if(dragMid > r.top + r.height / 2){
+        const beforeTop = dragRow.getBoundingClientRect().top;
+        list.insertBefore(dragRow, next.nextElementSibling);
+        const afterTop = dragRow.getBoundingClientRect().top;
+        pointerStartY += (afterTop - beforeTop);
+        dragRow.style.transform = `translateY(${lastClientY - pointerStartY}px)`;
+        lastSwapAt = now;
+      }
+    }
+  }
+
+  // Laeuft waehrend des gesamten Drags per requestAnimationFrame, nicht nur
+  // bei pointermove -- sonst wuerde das Scrollen sofort stoppen, sobald der
+  // Finger/Zeiger am Rand still haelt (genau der gemeldete Bug: man kam nicht
+  // ueber den sichtbaren Bereich hinaus).
+  function autoScrollStep(){
+    if(!dragRow){ autoScrollRAF = null; return; }
+    // Erst ab bestaetigter echter Zieh-Bewegung aktiv werden -- sonst wuerde
+    // schon ein blosser Klick nahe am Bildschirmrand (ohne jede Absicht zu
+    // ziehen) sofort Dauer-Scroll+Tausch ausloesen ("kurzer Drag katapultiert
+    // nach oben").
+    if(!moved){ autoScrollRAF = requestAnimationFrame(autoScrollStep); return; }
+    const vh = window.innerHeight;
+    let speed = 0;
+    if(lastClientY < AUTOSCROLL_EDGE){
+      speed = -AUTOSCROLL_MAX_SPEED * (1 - lastClientY / AUTOSCROLL_EDGE);
+    } else if(lastClientY > vh - AUTOSCROLL_EDGE){
+      speed = AUTOSCROLL_MAX_SPEED * (1 - (vh - lastClientY) / AUTOSCROLL_EDGE);
+    }
+    if(speed !== 0 && scrollEl){
+      const before = scrollEl.scrollTop;
+      scrollEl.scrollBy(0, speed);
+      const actualDelta = scrollEl.scrollTop - before;
+      if(actualDelta !== 0){
+        // Die gezogene Karte soll optisch am Mauszeiger "kleben" bleiben,
+        // waehrend der Rest der Liste darunter wegscrollt -- pointerStartY um
+        // genau den TATSAECHLICHEN Scroll-Betrag nachziehen (nicht die Soll-
+        // Geschwindigkeit, sonst driftet die Karte am Rand des Scrollbereichs
+        // auseinander, wo scrollBy weniger bewegt als angefragt).
+        pointerStartY -= actualDelta;
+        dragRow.style.transform = `translateY(${lastClientY - pointerStartY}px)`;
+      }
+      checkSwap();
+    }
+    autoScrollRAF = requestAnimationFrame(autoScrollStep);
+  }
+
   function cleanup(){
+    if(autoScrollRAF){ cancelAnimationFrame(autoScrollRAF); autoScrollRAF = null; }
     if(dragRow){
       dragRow.classList.remove("is-dragging");
       dragRow.style.transform = "";
@@ -6483,6 +6754,7 @@ function wireDragReorder(){
     dragRow = row;
     dragId = handle.dataset.drag;
     pointerStartY = e.clientY;
+    lastClientY = e.clientY;
     rowHeight = row.getBoundingClientRect().height;
     moved = false;
 
@@ -6491,10 +6763,12 @@ function wireDragReorder(){
     document.addEventListener("pointermove", onPointerMove);
     document.addEventListener("pointerup", onPointerUp);
     document.addEventListener("pointercancel", onPointerUp);
+    autoScrollRAF = requestAnimationFrame(autoScrollStep);
   }
 
   function onPointerMove(e){
     if(!dragRow) return;
+    lastClientY = e.clientY;
     const dy = e.clientY - pointerStartY;
     if(!moved && Math.abs(dy) > 3){
       moved = true;
@@ -6502,32 +6776,7 @@ function wireDragReorder(){
     }
     if(!moved) return;
     dragRow.style.transform = `translateY(${dy}px)`;
-
-    const dragRect = dragRow.getBoundingClientRect();
-    const dragMid = dragRect.top + dragRect.height / 2;
-
-    const prev = dragRow.previousElementSibling;
-    if(prev && prev.classList.contains("a-row")){
-      const r = prev.getBoundingClientRect();
-      if(dragMid < r.top + r.height / 2){
-        const beforeTop = dragRow.getBoundingClientRect().top;
-        list.insertBefore(dragRow, prev);
-        const afterTop = dragRow.getBoundingClientRect().top;
-        pointerStartY += (afterTop - beforeTop);
-        dragRow.style.transform = `translateY(${e.clientY - pointerStartY}px)`;
-      }
-    }
-    const next = dragRow.nextElementSibling;
-    if(next && next.classList.contains("a-row")){
-      const r = next.getBoundingClientRect();
-      if(dragMid > r.top + r.height / 2){
-        const beforeTop = dragRow.getBoundingClientRect().top;
-        list.insertBefore(dragRow, next.nextElementSibling);
-        const afterTop = dragRow.getBoundingClientRect().top;
-        pointerStartY += (afterTop - beforeTop);
-        dragRow.style.transform = `translateY(${e.clientY - pointerStartY}px)`;
-      }
-    }
+    checkSwap();
   }
 
   async function onPointerUp(){
@@ -6538,53 +6787,60 @@ function wireDragReorder(){
     cleanup();
     if(!wasMoved) return;
 
-    const oldIds = state.products.map(p => p.id);
-    const oldIndex = oldIds.indexOf(id);
-    if(oldIndex === -1) return;
-
-    // Bei aktivem Filter enthaelt finalOrder nur die gefilterten Zeilen — die
-    // Position darin sagt nichts direkt ueber die echte Position in state.products
-    // aus. Stattdessen: den sichtbaren Vorgaenger/Nachfolger des gezogenen Produkts
-    // in der gefilterten Liste als Anker nehmen und es in der VOLLEN Liste direkt
-    // davor bzw. dahinter einsortieren — ausgeblendete Produkte dazwischen rutschen
-    // dabei automatisch mit, was dem sichtbaren Ergebnis entspricht, das man gezogen hat.
+    // Bei aktivem Filter enthaelt finalOrder nur die gefilterten Zeilen. Frueher
+    // wurde daraus eine Ziel-Position in der VOLLEN Liste berechnet und das
+    // Produkt dorthin ueber eine Kette von Nachbar-Taeuschen (swap_product_order)
+    // bewegt -- lagen die beiden sichtbaren Nachbarn im vollen Katalog aber weit
+    // auseinander (z.B. bei einem engen Unterkategorie-Filter), riss das ALLE
+    // dazwischenliegenden, unsichtbaren Produkte mit und katapultierte das
+    // gezogene Produkt teils bis ganz an den Anfang -- selbst bei einem kurzen
+    // Drag. Jetzt wird stattdessen EIN neuer sort_order-Wert direkt zwischen
+    // den beiden sichtbaren Nachbarn berechnet und nur das gezogene Produkt
+    // bekommt einen neuen Wert -- alle anderen bleiben unangetastet.
     const draggedPosInVisible = finalOrder.indexOf(id);
     const visibleNextId = finalOrder[draggedPosInVisible + 1];
     const visiblePrevId = finalOrder[draggedPosInVisible - 1];
+    if(!visibleNextId && !visiblePrevId) return; // einzige sichtbare Zeile — keine Bewegung moeglich
 
-    const withoutDragged = oldIds.filter(x => x !== id);
-    let newIndex;
-    if(visibleNextId){
-      newIndex = withoutDragged.indexOf(visibleNextId); // direkt vor den sichtbaren Nachfolger
-    } else if(visiblePrevId){
-      newIndex = withoutDragged.indexOf(visiblePrevId) + 1; // direkt nach den sichtbaren Vorgaenger
-    } else {
-      return; // einzige sichtbare Zeile — keine Bewegung moeglich
+    function computeGap(){
+      const byId = new Map(state.products.map(p => [p.id, p]));
+      const nextO = visibleNextId ? (byId.get(visibleNextId)?.sort_order ?? 0) : null;
+      const prevO = visiblePrevId ? (byId.get(visiblePrevId)?.sort_order ?? 0) : null;
+      if(nextO != null && prevO != null){
+        return { value: Math.round((nextO + prevO) / 2), hasGap: nextO - prevO >= 2 };
+      }
+      return { value: nextO != null ? nextO - 10 : prevO + 10, hasGap: true };
+    }
+
+    let gap = computeGap();
+    if(!gap.hasGap){
+      // Kein ganzzahliger Platz mehr zwischen den Nachbarn (z.B. nach vielen
+      // Drags in dieselbe Luecke) -- alle uebrigen Produkte dieses Creators
+      // frisch in 10er-Schritten durchnummerieren (relative Reihenfolge bleibt
+      // erhalten), dann die Luecke neu berechnen.
+      const others = state.products.filter(p => p.id !== id);
+      const results = await Promise.all(
+        others.map((p, i) => sb.from("products").update({ sort_order: (i + 1) * 10 }).eq("id", p.id))
+      );
+      const err = results.find(r => r.error);
+      if(err){ atoast(err.error.message, "err"); return; }
+      state.products = await loadProducts(state.activeId);
+      gap = computeGap();
     }
 
     // Reihenfolge sofort optisch uebernehmen, waehrend im Hintergrund gespeichert wird.
-    // (render() ersetzt #list komplett neu — die alte Referenz hier ist danach nicht mehr noetig.)
-    const reordered = withoutDragged.slice();
-    reordered.splice(newIndex, 0, id);
-    if(reordered.join(",") === oldIds.join(",")) return; // keine tatsaechliche Verschiebung
-    state.products = reordered.map(pid => state.products.find(p => p.id === pid));
-    render();
+    const draggedProduct = state.products.find(p => p.id === id);
+    if(!draggedProduct) return;
+    const reordered = state.products.filter(p => p.id !== id);
+    const insertAt = visibleNextId ? reordered.findIndex(p => p.id === visibleNextId) : reordered.length;
+    reordered.splice(insertAt, 0, { ...draggedProduct, sort_order: gap.value });
+    state.products = reordered;
+    renderKeepScroll();
 
-    // swap_product_order arbeitet mit Nachbar-Tausch in der ECHTEN Reihenfolge —
-    // oldIndex/finalIndex hier beziehen sich deshalb auf oldIds, nicht auf withoutDragged.
-    const finalIndex = reordered.indexOf(id);
-    const dir = finalIndex > oldIndex ? 1 : -1;
-    const working = oldIds.slice();
-    let cur = oldIndex;
-    while(cur !== finalIndex){
-      const a = working[cur], b = working[cur + dir];
-      const { error } = await sb.rpc("swap_product_order", { a, b });
-      if(error){ atoast(error.message, "err"); break; }
-      [working[cur], working[cur + dir]] = [working[cur + dir], working[cur]];
-      cur += dir;
-    }
+    const { error } = await sb.from("products").update({ sort_order: gap.value }).eq("id", id);
+    if(error) atoast(error.message, "err");
     state.products = await loadProducts(state.activeId);
-    render();
+    renderKeepScroll();
   }
 
   list.addEventListener("pointerdown", onPointerDown);
@@ -7010,7 +7266,7 @@ function wireDashboard(){
       closeSwitch();
       state.activeId = pick.dataset.pick;
       editingProductId = null;
-      productFilterCat = "all"; productFilterStyle = "all"; productFilterQuery = "";
+      productFilterCat = "all"; productFilterSubcat = "all"; productFilterStyle = "all"; productFilterQuery = "";
       await loadCategoriesFor(state.activeId);
       state.products = await loadProducts(state.activeId);
       return render();
@@ -7038,29 +7294,30 @@ function wireDashboard(){
   // Tastendruck im Slug-Feld sowie beim Oeffnen des Formulars. Nutzt einen
   // sauberen Pfad (/slug) statt ?creator=slug, mit Fallback-Domain fuer
   // file://-Tests, wo window.location.origin nicht brauchbar ist.
+  // (Die eigentliche URL-Bildung steckt in buildShareLink(), einer globalen
+  // Funktion weiter oben im Skript — die braucht auch der immer sichtbare
+  // Link-Bereich fuer den aktuell ausgewaehlten Creator, siehe renderDashboard().)
   const shareLinkInput = document.getElementById("c-sharelink");
   function updateShareLink(){
     const rawSlug = document.getElementById("c-slug").value.trim().toLowerCase()
       .replace(/[^a-z0-9-]+/g,"-").replace(/^-+|-+$/g,"");
-    const base = (window.location.origin && window.location.origin !== "null"
-      && !window.location.origin.startsWith("file://"))
-      ? window.location.origin
-      : "https://stylefinder.com";
-    shareLinkInput.value = rawSlug ? `${base}/${encodeURIComponent(rawSlug)}` : "";
+    shareLinkInput.value = buildShareLink(rawSlug);
   }
   document.getElementById("c-slug").addEventListener("input", updateShareLink);
 
-  async function copyShareLink(){
-    if(!shareLinkInput.value) return;
+  // Generisch gehalten, damit sowohl das Bearbeiten-Formular (c-sharelink)
+  // als auch der immer sichtbare Link-Bereich (activeShareLink) dieselbe
+  // Kopier-Logik samt Kurz-Feedback am Button nutzen koennen.
+  async function copyShareLinkFrom(inputEl, btnId){
+    if(!inputEl || !inputEl.value) return;
     try {
-      await navigator.clipboard.writeText(shareLinkInput.value);
+      await navigator.clipboard.writeText(inputEl.value);
       atoast("Creator-Link kopiert! \u{1F4CB}");
       // Kurzes visuelles Feedback direkt am Button, zusaetzlich zum Toast —
       // bestaetigt sofort am Klickort, auch wenn der Toast am Bildschirmrand
       // leicht uebersehen wird.
-      const btn = document.getElementById("c-sharecopy");
-      const label = document.getElementById("c-sharecopy-label");
-      if(btn && label && !btn.classList.contains("is-copied")){
+      const btn = document.getElementById(btnId);
+      if(btn && !btn.classList.contains("is-copied")){
         const prevHtml = btn.innerHTML;
         btn.classList.add("is-copied");
         btn.innerHTML = `${CHECK_SVG.replace("lang-check","a-btn-icon")}<span>Kopiert</span>`;
@@ -7070,8 +7327,16 @@ function wireDashboard(){
       atoast("Konnte nicht kopiert werden \u2014 bitte manuell markieren.", "err");
     }
   }
+  const copyShareLink = ()=> copyShareLinkFrom(shareLinkInput, "c-sharecopy");
   document.getElementById("c-sharecopy").onclick = copyShareLink;
   shareLinkInput.addEventListener("click", copyShareLink);
+
+  const activeShareLinkInput = document.getElementById("activeShareLink");
+  if(activeShareLinkInput){
+    const copyActiveShareLink = ()=> copyShareLinkFrom(activeShareLinkInput, "activeShareCopy");
+    document.getElementById("activeShareCopy").onclick = copyActiveShareLink;
+    activeShareLinkInput.addEventListener("click", copyActiveShareLink);
+  }
 
   // ---- Weidian-Shop-Zuweisung (Vorschau) ----
   // Simuliert das Ergebnis eines API-Aufrufs, der mit dem hinterlegten App Key
@@ -7216,6 +7481,10 @@ function wireDashboard(){
     e.preventDefault();
     const slug = document.getElementById("c-slug").value.trim().toLowerCase()
       .replace(/[^a-z0-9-]+/g,"-").replace(/^-+|-+$/g,"");
+    // Bestand nur aus Sonderzeichen (z.B. "@@@") -> nach der Bereinigung leer.
+    // Ohne diese Pruefung waere der Creator ueber keine gueltige URL mehr
+    // erreichbar (leerer Pfad faellt auf den Standard-Creator zurueck).
+    if(!slug) return atoast("URL-Slug ergibt nach Bereinigung nichts Gültiges — bitte Buchstaben/Zahlen verwenden.", "err");
     const name = document.getElementById("c-name").value.trim();
 
     const daten = {
@@ -7260,15 +7529,12 @@ function wireDashboard(){
       const { error: catCopyErr } = await sb.rpc("apply_default_categories_to_creator", { target_creator_id: newCreatorId });
       if(catCopyErr) atoast(`Creator angelegt, aber Standard-Kategorien konnten nicht kopiert werden: ${catCopyErr.message}`, "err");
 
-      const { data: groupSource } = await sb.from("products").select("*").not("group_id", "is", null);
-      const seen = new Set();
-      const templates = [];
-      (groupSource ?? []).forEach(p => {
-        if(seen.has(p.group_id)) return;
-        seen.add(p.group_id);
-        templates.push(p);
-      });
-      if(templates.length){
+      // Ueber dieselbe RPC wie loadProducts(ALL_CREATOR_ID) -- dedupliziert
+      // serverseitig, statt bei vielen Creatorn/Produkten (z.B. 100 Creator x
+      // 7.000 Produkte = 700.000 Zeilen) erst alle Kopien komplett zu laden,
+      // nur um sie hier wieder auf die eindeutigen Gruppen zu reduzieren.
+      const { data: templates } = await sb.rpc("get_grouped_products");
+      if(templates?.length){
         const rows = templates.map((p, i) => ({
           creator_id: newCreatorId,
           group_id: p.group_id,
@@ -7281,7 +7547,13 @@ function wireDashboard(){
           is_trend: p.is_trend,
           sort_order: (i + 1) * 10
         }));
-        const { error: copyErr } = await sb.from("products").insert(rows);
+        // In Portionen, aus demselben Grund wie beim CSV-Import: bei sehr
+        // vielen gemeinsamen Produkten waere ein einzelner Insert mit
+        // tausenden Zeilen ein unnoetig grosser Request.
+        let copyErr = null;
+        for(let i = 0; i < rows.length && !copyErr; i += 500){
+          ({ error: copyErr } = await sb.from("products").insert(rows.slice(i, i + 500)));
+        }
         if(copyErr) atoast(`Creator angelegt, aber gemeinsame Produkte konnten nicht kopiert werden: ${copyErr.message}`, "err");
       }
     }
@@ -7729,6 +8001,22 @@ function wireDashboard(){
       opts.map(s=>`<option value="${aesc(s.key)}">${aesc(s.label)}</option>`).join("");
   };
 
+  // Bestimmt den sort_order-Wert fuer ein neu angelegtes Produkt anhand der
+  // gewaehlten Position. "top"/"bottom" haengen ganz vorne/hinten an (ausserhalb
+  // der bestehenden Spanne), die Prozent-Optionen setzen den Wert genau zwischen
+  // die beiden Nachbar-Produkte an der jeweiligen Stelle der (aufsteigend
+  // sortierten) Liste -- aufsteigender sort_order = oben auf der Seite.
+  function pickSortOrder(orders, position){
+    const sorted = orders.slice().sort((a,b) => a - b);
+    if(!sorted.length) return 0;
+    if(position === "top") return sorted[0] - 10;
+    if(position === "bottom") return sorted[sorted.length - 1] + 10;
+    const pct = position === "top25" ? 0.25 : position === "bottom25" ? 0.75 : 0.5;
+    const idx = (sorted.length - 1) * pct;
+    const lo = Math.floor(idx), hi = Math.ceil(idx);
+    return lo === hi ? sorted[lo] : Math.round((sorted[lo] + sorted[hi]) / 2);
+  }
+
   const pForm = document.getElementById("productForm");
   if(pForm) pForm.onsubmit = async (e)=>{
     e.preventDefault();
@@ -7737,11 +8025,12 @@ function wireDashboard(){
     btn.disabled = true;
     btn.textContent = "Speichert …";
     const url = document.getElementById("p-url").value.trim();
+    const position = document.getElementById("p-position").value; // "top" oder "bottom"
 
     // Klammer-Kurzschreibweise im Titel, z.B. "Ralph Lauren Decke (-30%)":
-    // wird als Rabatt-Badge herausgelöst und aus dem Titel entfernt. Die Farbe
-    // bleibt leer, damit dieselbe Standardfarbe (#e11d48) greift wie beim manuell
-    // im Bearbeiten-Dialog gesetzten Badge (dort per Fallback in der Kartenanzeige).
+    // wird als Rabatt-Badge herausgelöst und aus dem Titel entfernt, fest in
+    // Hellblau (#38bdf8) -- so gewuenscht, statt der roten Standardfarbe des
+    // manuellen Bearbeiten-Dialogs.
     const titleRaw = document.getElementById("p-title").value.trim();
     const discountMatch = titleRaw.match(/\(\s*(-\d+%)\s*\)/);
     const title = discountMatch
@@ -7757,54 +8046,23 @@ function wireDashboard(){
       style_tag: document.getElementById("p-style").value.trim() || null,
       image_url: uploadedUrl || null,
       is_trend: document.getElementById("p-trend").checked,
-      discount_label: discountMatch ? discountMatch[1] : null
+      discount_label: discountMatch ? discountMatch[1] : null,
+      discount_color: discountMatch ? "#38bdf8" : null
     };
 
     let error;
     try {
-      if(state.activeId === ALL_CREATOR_ID){
-        if(!state.creators.length){
-          btn.disabled = false; btn.textContent = "Produkt speichern";
-          return atoast("Noch kein Creator vorhanden — leg oben erst einen an.", "err");
-        }
-        // Eine group_id verbindet alle Kopien dieser Aktion; sort_order wird pro
-        // Ziel-Creator einzeln ans Ende seiner eigenen Liste gehaengt, nicht global.
-        const groupId = crypto.randomUUID();
-        const { data: existing } = await sb.from("products").select("creator_id, sort_order");
-        const lastByCreator = new Map();
-        (existing ?? []).forEach(p => {
-          lastByCreator.set(p.creator_id, Math.max(lastByCreator.get(p.creator_id) ?? 0, p.sort_order ?? 0));
-        });
-        const rows = state.creators.map(c => ({
-          ...baseFields,
-          creator_id: c.id,
-          group_id: groupId,
-          sort_order: (lastByCreator.get(c.id) ?? 0) + 10
-        }));
-        ({ error } = await sb.from("products").insert(rows));
-
-        // Fehlt die Spalte group_id noch in Supabase (Migration nicht ausgefuehrt),
-        // schlaegt der Insert mit ALLEN Zeilen fehl. Ohne group_id einzeln neu anlegen,
-        // damit wenigstens die Produkte selbst entstehen — nur die Gruppen-Verknuepfung
-        // (gemeinsames Bearbeiten/Löschen) fehlt dann, bis die Spalte angelegt ist.
-        if(error && /group_id/i.test(error.message || "")){
-          const rowsWithoutGroup = rows.map(({ group_id, ...rest }) => rest);
-          ({ error } = await sb.from("products").insert(rowsWithoutGroup));
-          if(!error){
-            atoast(`Produkt bei ${rows.length} ${rows.length === 1 ? "Creator" : "Creatorn"} angelegt — aber die Gruppen-Funktion (gemeinsames Bearbeiten) fehlt noch in der Datenbank. Spalte group_id in Supabase anlegen, siehe Chat.`, "err");
-          }
-        } else if(!error){
-          atoast(`Produkt bei ${rows.length} ${rows.length === 1 ? "Creator" : "Creatorn"} angelegt.`);
-        }
-      } else {
-        const last = state.products.reduce((m,p)=> Math.max(m, p.sort_order ?? 0), 0);
-        ({ error } = await sb.from("products").insert({
-          ...baseFields,
-          creator_id: state.activeId,
-          sort_order: last + 10
-        }));
-        if(!error) atoast("Produkt gespeichert.");
-      }
+      // Das Formular existiert nur noch pro einzelnem Creator (siehe
+      // Bedingung oben im Template) -- "Alle Creator" hat kein eigenes
+      // Hinzufuegen mehr, um bei vielen Creatorn/Produkten keine riesigen
+      // Kopiervorgaenge auszuloesen.
+      const sort_order = pickSortOrder(state.products.map(p => p.sort_order ?? 0), position);
+      ({ error } = await sb.from("products").insert({
+        ...baseFields,
+        creator_id: state.activeId,
+        sort_order
+      }));
+      if(!error) atoast("Produkt gespeichert.");
     } catch(jsErr){
       // Sicherheitsnetz: ein unerwarteter JS-Fehler soll nie stillschweigend
       // verpuffen, sondern immer sichtbar als Toast landen.
@@ -7901,13 +8159,21 @@ function wireDashboard(){
   // damit nicht bei jedem Tastenanschlag ein Netzwerk-Roundtrip-Gefuehl entsteht.
   // refreshAdminProductList() ersetzt nur #list + den Zaehler, nie das Suchfeld selbst —
   // dadurch bleibt der Cursor beim Tippen an Ort und Stelle.
-  const filterCatEl   = document.getElementById("filter-cat");
-  const filterStyleEl = document.getElementById("filter-style");
-  const filterQEl     = document.getElementById("filter-q");
-  const filterResetEl = document.getElementById("filterReset");
+  const filterCatEl    = document.getElementById("filter-cat");
+  const filterSubcatEl = document.getElementById("filter-subcat");
+  const filterStyleEl  = document.getElementById("filter-style");
+  const filterQEl      = document.getElementById("filter-q");
+  const filterResetEl  = document.getElementById("filterReset");
 
   if(filterCatEl) filterCatEl.onchange = ()=>{
     productFilterCat = filterCatEl.value;
+    // Unterkategorien gehoeren zu genau einer Kategorie -- bei Kategoriewechsel
+    // waere die bisherige Auswahl sonst ungueltig/verwirrend.
+    productFilterSubcat = "all";
+    render();
+  };
+  if(filterSubcatEl) filterSubcatEl.onchange = ()=>{
+    productFilterSubcat = filterSubcatEl.value;
     render();
   };
   if(filterStyleEl) filterStyleEl.onchange = ()=>{
@@ -7925,7 +8191,7 @@ function wireDashboard(){
     };
   }
   if(filterResetEl) filterResetEl.onclick = ()=>{
-    productFilterCat = "all"; productFilterStyle = "all"; productFilterQuery = "";
+    productFilterCat = "all"; productFilterSubcat = "all"; productFilterStyle = "all"; productFilterQuery = "";
     render();
   };
 }
@@ -8093,13 +8359,47 @@ async function loadData(){
 
   SUBCATEGORIES = subcats ?? [];
 
+  // Erste Seite laden statt des gesamten Katalogs auf einmal -- bei sehr
+  // grossen Katalogen (mehrere tausend Produkte) waeren das sonst mehrere MB
+  // reiner JSON-Text, bevor ueberhaupt etwas angezeigt wird. Der Rest wird
+  // direkt danach im Hintergrund nachgeladen (siehe unten) -- passend zum
+  // Prinzip der bereits lazy geladenen Bilder, nur eine Ebene frueher (Daten
+  // statt Bild-Bytes).
   const { data: prods } = await sb.from("products").select("*")
     .eq("creator_id", CREATOR_ROW.id)
     .eq("is_hidden", false)
     .order("sort_order", { ascending:true })
-    .order("created_at", { ascending:false });
+    .order("created_at", { ascending:false })
+    .range(0, PRODUCTS_PAGE_SIZE - 1);
 
-  PRODUCTS = (prods ?? []).map(p => ({
+  PRODUCTS = (prods ?? []).map(mapProductRow);
+
+  initPriceFilter();
+  wirePriceFilter();
+
+  // Nur falls die erste Seite voll war (also potenziell mehr existiert) --
+  // laeuft bewusst OHNE await weiter: soll den ersten Seitenaufbau nicht
+  // verzoegern. Haengt PRODUCTS im Hintergrund an. productsFullLoadPromise
+  // laesst update() bei Bedarf kurz warten, statt mit unvollstaendigen Daten
+  // zu rendern (z.B. wenn direkt nach dem Laden schon eine Kategorie ohne
+  // aktiven Style-Filter angeklickt wird, bevor der Rest da ist).
+  if((prods ?? []).length === PRODUCTS_PAGE_SIZE){
+    productsFullyLoaded = false;
+    productsFullLoadPromise = new Promise(res => { productsFullLoadResolve = res; });
+    loadRemainingProducts(CREATOR_ROW.id, PRODUCTS_PAGE_SIZE);
+  } else {
+    productsFullyLoaded = true;
+    productsFullLoadPromise = Promise.resolve();
+  }
+}
+
+const PRODUCTS_PAGE_SIZE = 300;
+let productsFullyLoaded = true;
+let productsFullLoadResolve = null;
+let productsFullLoadPromise = Promise.resolve();
+
+function mapProductRow(p){
+  return {
     id:    p.id,
     name:  p.title,
     cat:   p.category || "all",
@@ -8111,10 +8411,34 @@ async function loadData(){
     featured: !!p.is_featured,
     discountLabel: p.discount_label || "",
     discountColor: p.discount_color || "#e11d48"
-  }));
+  };
+}
 
-  initPriceFilter();
-  wirePriceFilter();
+async function loadRemainingProducts(creatorId, fromOffset){
+  // Markiert bei JEDEM Ausstieg (Fehler, fertig, Creator zwischenzeitlich
+  // gewechselt) den Ladevorgang als abgeschlossen und weckt update() auf,
+  // falls es gerade darauf wartet -- sonst wuerde eine Nicht-Home-Ansicht bei
+  // einem Fehler/Abbruch permanent haengen bleiben.
+  function finish(){
+    if(CREATOR_ROW && CREATOR_ROW.id === creatorId) productsFullyLoaded = true;
+    productsFullLoadResolve?.();
+  }
+  let offset = fromOffset;
+  for(;;){
+    const { data, error } = await sb.from("products").select("*")
+      .eq("creator_id", creatorId)
+      .eq("is_hidden", false)
+      .order("sort_order", { ascending:true })
+      .order("created_at", { ascending:false })
+      .range(offset, offset + PRODUCTS_PAGE_SIZE - 1);
+    if(error || !data || !data.length) return finish();
+    // Falls sich der Creator zwischenzeitlich geaendert hat (schneller Wechsel
+    // ueber die URL), diese veralteten Nachlade-Ergebnisse verwerfen.
+    if(!CREATOR_ROW || CREATOR_ROW.id !== creatorId) return finish();
+    PRODUCTS.push(...data.map(mapProductRow));
+    if(data.length < PRODUCTS_PAGE_SIZE) return finish();
+    offset += PRODUCTS_PAGE_SIZE;
+  }
 }
 
 // Registrierungs-Popup: Profilbild, Name und Ziel-Link kommen 1:1 vom Creator-
