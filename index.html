@@ -737,7 +737,8 @@
      einfach seine gemerkten Produkte sehen, nicht sie nochmal filtern) —
      anders als bei "Alle Produkte" bleiben sie dort also NICHT stehen. */
   body.wishlist-view .tab-bar-wrap,
-  body.wishlist-view .cat-row-wrap{display:none;}
+  body.wishlist-view .cat-row-wrap,
+  body.wishlist-view .subcat-row{display:none;}
   /* (hover:hover) greift nur bei echten Zeigegeraeten mit Maus — auf Touch/
      Handy bleibt der Hover-Zustand nach dem Antippen sonst haengen (der
      blaue Rahmen faerbt sich ein und bleibt so, bis man woanders hintippt). */
@@ -854,6 +855,28 @@
   .an-select-opt-check{margin-left:auto;flex:0 0 auto;width:15px;height:15px;opacity:0;}
   .an-select-opt[aria-selected="true"] .an-select-opt-check{opacity:1;}
 
+  /* Style-Tags-Mehrfachauswahl (Produkt hinzufügen/bearbeiten) — Knopf sieht
+     aus wie ein normales .a-field, Menü bleibt beim Ankreuzen offen (anders
+     als .an-select, das bei Auswahl sofort schliesst). */
+  .a-multiselect{position:relative;}
+  .a-multiselect-btn{display:flex;align-items:center;justify-content:space-between;gap:8px;
+    cursor:pointer;text-align:left;}
+  .a-multiselect-btn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .a-multiselect-btn .a-caret{width:15px;height:15px;}
+  .a-multiselect-btn[aria-expanded="true"]{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,102,245,.16);}
+  .a-multiselect-btn[aria-expanded="true"] .a-caret{transform:rotate(180deg);}
+  .a-multiselect-menu{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:20;
+    background:#fff;border:1px solid var(--border);border-radius:14px;padding:6px;
+    box-shadow:0 18px 44px rgba(20,22,26,.16);max-height:240px;overflow-y:auto;
+    opacity:0;visibility:hidden;transform:translateY(-6px);
+    transition:opacity .14s ease, transform .14s ease;}
+  .a-multiselect.open .a-multiselect-menu{opacity:1;visibility:visible;transform:none;}
+  .a-multiselect-opt{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:9px;
+    cursor:pointer;font-size:13px;font-weight:600;color:var(--text);transition:background-color .12s ease;}
+  .a-multiselect-opt:hover{background:#f1f2f5;}
+  .a-multiselect-opt input{width:17px;height:17px;accent-color:var(--accent);cursor:pointer;flex:0 0 auto;}
+  .a-multiselect-empty{padding:8px 10px;font-size:13px;color:var(--muted);margin:0;}
+
   .an-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:24px;}
   .an-kpi{border:1px solid var(--border);border-radius:16px;padding:18px 20px;background:#fafbfc;
     text-align:left;font-family:inherit;cursor:pointer;transition:border-color .15s ease, background-color .15s ease;}
@@ -862,6 +885,71 @@
     box-shadow:0 0 0 1px var(--accent) inset;}
   .an-kpi-static{cursor:default;}
   .an-kpi-static:hover{border-color:var(--border);}
+  /* Besucher-Weltkarte: helle Karte im gleichen Stil wie die übrigen
+     Widgets (weiss, gerundet, feiner Rahmen) — nur die Besucherpunkte
+     tragen Farbe, damit der Blick sofort dort landet. */
+  .an-map-card{border:1px solid var(--border);border-radius:16px;background:#fff;
+    padding:18px 20px 14px;margin-bottom:24px;}
+  .an-map-head{display:flex;align-items:center;justify-content:space-between;
+    gap:12px;flex-wrap:wrap;margin-bottom:12px;}
+  .an-map-zoom{display:inline-flex;align-items:center;gap:6px;}
+  .an-map-zoom button{border:1px solid var(--border);background:#fff;color:var(--text);
+    border-radius:10px;height:30px;min-width:30px;padding:0 8px;font-size:15px;
+    font-weight:700;line-height:1;cursor:pointer;display:inline-flex;
+    align-items:center;justify-content:center;transition:background .14s ease,border-color .14s ease;}
+  .an-map-zoom button:hover{background:#f4f5f9;border-color:#c9cfdd;}
+  .an-map-zoom button:disabled{opacity:.4;cursor:default;background:#fff;border-color:var(--border);}
+  .an-map-zoom-reset{font-size:12px !important;font-weight:600 !important;padding:0 11px !important;}
+  /* Der Kartenausschnitt wird beim Zoomen per viewBox verschoben — overflow
+     versteckt, was ausserhalb des Rahmens liegt. */
+  .an-map-stage{position:relative;width:100%;overflow:hidden;border-radius:12px;}
+  .an-map-svg{display:block;width:100%;height:auto;touch-action:none;cursor:grab;
+    -webkit-user-select:none;user-select:none;}
+  .an-map-svg.is-dragging{cursor:grabbing;}
+  /* non-scaling-stroke: Linienstaerken bleiben beim Zoomen gleich duenn,
+     sonst werden Kuestenlinien und Punktraender beim Reinzoomen fett. */
+  .an-map-land{fill:#e9edf5;stroke:#d7dded;stroke-width:.4;vector-effect:non-scaling-stroke;}
+  .an-map-dot{fill:var(--accent);stroke:#fff;stroke-width:1.2;cursor:pointer;
+    vector-effect:non-scaling-stroke;transition:fill-opacity .14s ease;}
+  .an-map-dot:hover,.an-map-dot:focus{fill-opacity:1 !important;outline:none;}
+  .an-map-dot:focus-visible{stroke:#0f172a;stroke-width:2;}
+  .an-map-pulse{fill:none;stroke:var(--accent);stroke-width:1.4;pointer-events:none;
+    vector-effect:non-scaling-stroke;transform-box:fill-box;transform-origin:center;
+    animation:anMapPulse 2.4s ease-out infinite;}
+  @keyframes anMapPulse{
+    0%{transform:scale(1);opacity:.6;}
+    70%{transform:scale(2.8);opacity:0;}
+    100%{transform:scale(2.8);opacity:0;}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .an-map-pulse{animation:none;opacity:.35;}
+  }
+  .an-map-hint{margin:0;padding:48px 0;text-align:center;font-size:13px;
+    line-height:1.6;color:var(--muted);}
+  .an-map-hint-line{margin:3px 0 0;font-size:12px;color:var(--muted);}
+  /* Tooltip sitzt über dem Punkt, horizontal auf ihn zentriert */
+  .an-map-tip{position:absolute;transform:translate(-50%,calc(-100% - 10px));
+    background:#0f172a;color:#fff;border-radius:10px;padding:8px 11px;
+    font-size:12px;line-height:1.5;white-space:nowrap;pointer-events:none;
+    box-shadow:0 8px 24px rgba(15,23,42,.22);z-index:3;}
+  .an-map-tip strong{display:block;font-size:13px;margin-bottom:2px;}
+  .an-map-legend{display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+    border-top:1px solid #eff1f4;margin-top:12px;padding-top:12px;}
+  .an-map-top-item{display:inline-flex;align-items:center;gap:8px;background:#f7f8fb;
+    border:1px solid var(--border);border-radius:999px;padding:6px 12px 6px 6px;}
+  .an-map-rank{width:20px;height:20px;border-radius:999px;background:var(--accent);color:#fff;
+    font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;}
+  .an-map-country{font-size:13px;font-weight:700;color:var(--text);}
+  .an-map-share{font-size:12px;font-weight:700;color:var(--accent);}
+  .an-map-note{flex:1 1 100%;margin:2px 0 0;font-size:12px;color:var(--muted);}
+
+  .an-live-dot{display:inline-block;width:8px;height:8px;border-radius:999px;
+    background:#10b981;animation:anLivePulse 1.6s ease-in-out infinite;}
+  @keyframes anLivePulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,.45);}
+    50%{box-shadow:0 0 0 5px rgba(16,185,129,0);}
+  }
+  @media (prefers-reduced-motion: reduce){.an-live-dot{animation:none;}}
   .an-kpi-label{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;
     letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
   .an-kpi-label svg{width:15px;height:15px;flex:0 0 auto;color:#9aa2b1;}
@@ -872,7 +960,6 @@
   .an-chart-legend{display:flex;gap:18px;margin-bottom:14px;font-size:13px;color:var(--muted);}
   .an-chart-legend span{display:inline-flex;align-items:center;gap:6px;font-weight:600;}
   .an-legend-dot{width:9px;height:9px;border-radius:999px;flex:0 0 auto;}
-  .an-chart-svg{width:100%;height:220px;display:block;overflow:visible;}
   .an-chart-empty{padding:50px 0;text-align:center;color:var(--muted);font-size:14px;}
 
   .an-top-list{display:flex;flex-direction:column;max-height:520px;overflow-y:auto;}
@@ -1175,6 +1262,14 @@
   .a-btn-ghost{background:#fff;border-color:#d3d8e0;color:var(--text);}
   .a-btn-ghost:hover{border-color:#9aa2b1;background:#fafbfc;}
   .a-btn:disabled{opacity:.45;cursor:not-allowed;transform:none;}
+  .a-btn-danger{background:#fff;border-color:#f2c6c6;color:var(--err);}
+  .a-btn-danger:hover:not(:disabled){border-color:var(--err);background:#fff5f5;}
+
+  /* Mehrfachauswahl-Leiste über der Produktliste */
+  .a-bulk-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:16px 0 0;}
+  .a-bulk-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .a-bulk-count{font-size:13px;font-weight:700;color:var(--muted);white-space:nowrap;}
+  .a-bulk-actions{display:flex;gap:10px;flex-wrap:wrap;}
 
   /* Produktzeilen */
   .a-list{margin-top:4px;}
@@ -1187,6 +1282,11 @@
   .a-row.is-editing{background:#f8f9fc;border-radius:12px;margin:0 -12px;padding-left:12px;padding-right:12px;}
   .a-row.is-editing .a-drag-handle{opacity:.3;pointer-events:none;}
   .a-icon-edit[aria-expanded="true"]{border-color:var(--accent);color:var(--accent);background:#f3f6ff;}
+
+  /* Mehrfachauswahl: Checkbox ersetzt den Drag-Griff, markierte Zeilen heben sich ab */
+  .a-row.is-selected{background:#f0f3ff;border-radius:12px;margin:0 -12px;padding-left:12px;padding-right:12px;}
+  .a-row-check{width:44px;height:44px;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;}
+  .a-row-check input{width:19px;height:19px;accent-color:var(--accent);cursor:pointer;}
 
   /* Inline-Bearbeitung: klappt direkt unter der Zeile auf, Liste bleibt an Ort und Stelle */
   .a-edit-panel{background:#f8f9fc;border:1px solid #e9ecf1;border-radius:14px;
@@ -1230,6 +1330,21 @@
   .a-row-title{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .a-row-meta{font-size:13px;color:var(--muted);margin-top:3px;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  /* Admin-Zugänge: jede Zeile steckt in einem Wrapper, damit das
+     Creator-Zuweisen-Panel darunter Platz hat, ohne die Row-Trennlinien
+     zwischen den Admins durcheinanderzubringen (Rand wandert auf den
+     Wrapper, die innere .a-row verliert ihren eigenen). */
+  .a-row-wrap{border-top:1px solid #eff1f4;padding:14px 0;}
+  .a-row-wrap:first-child{border-top:none;padding-top:4px;}
+  .a-row-wrap .a-row{border-top:none;padding:0;}
+  .a-row-creators{white-space:normal;}
+  .a-assign-none{color:var(--err);}
+  .a-assign-panel{margin-top:12px;background:#f8f9fc;border:1px solid var(--border);
+    border-radius:12px;padding:14px;}
+  .a-assign-list{position:static;opacity:1;visibility:visible;transform:none;
+    box-shadow:none;border:none;padding:0;max-height:220px;overflow:auto;}
+  .a-assign-list-static{position:static;opacity:1;visibility:visible;transform:none;
+    box-shadow:none;border:1px solid var(--border);border-radius:12px;padding:8px;max-height:220px;overflow:auto;}
   .a-pill{display:inline-block;background:#eef0f4;border-radius:999px;padding:2px 9px;
     font-size:11px;font-weight:700;color:#5b616b;margin-left:7px;vertical-align:1px;}
   .a-pill-trend{background:#e8f1ff;color:#2f55d4;}
@@ -1973,6 +2088,130 @@ const SUPABASE_URL  = "https://voskcgnbwpemacphyuxb.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvc2tjZ25id3BlbWFjcGh5dXhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczMTM2ODYsImV4cCI6MjEwMjg4OTY4Nn0.tHXR68DrRTZpOWvd1ny1bph0F1WC1xvML_zjfzt54JI";
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
+// ---------------------------------------------------------------------
+//  Herkunftsland des Besuchers (fuer die Weltkarte im Analytics-Bereich)
+// ---------------------------------------------------------------------
+// Abgeleitet aus der ZEITZONE des Browsers, nicht aus der IP-Adresse:
+//  * Die Seite liegt auf GitHub Pages -- es gibt keinen eigenen Server, der
+//    die IP ueberhaupt zu Gesicht bekaeme.
+//  * Ein fremder GeoIP-Dienst wuerde die IP JEDES Besuchers an einen Dritten
+//    schicken (DSGVO-Thema) und bei 10.000 Besuchern/Tag jedes kostenlose
+//    Kontingent sprengen; zusaetzlich blocken viele Adblocker genau diese
+//    Dienste, wodurch die Karte lueckenhaft waere.
+//  * Die Zeitzone liefert das Land ohne Zusatz-Request, ohne Drittanbieter
+//    und ohne personenbezogene Daten -- und ist bei VPN-Nutzern sogar
+//    zuverlaessiger als die IP (das Betriebssystem behaelt seine Zeitzone).
+// Ungenauigkeiten sind dadurch moeglich (Reisende mit Heimat-Zeitzone), fuer
+// eine Herkunfts-Uebersicht auf Landesebene aber voellig ausreichend.
+//
+// Kompakte Tabellen als Strings statt als Objekt-Literale -- spart im
+// Einzeldatei-Aufbau spuerbar Platz und wird einmalig beim Laden in Maps
+// aufgeloest. Format: "LAENDERCODE=Zone1,Zone2|..."
+const TZ_COUNTRY_RAW =
+  "DE=Europe/Berlin,Europe/Busingen|AT=Europe/Vienna|CH=Europe/Zurich|FR=Europe/Paris|ES=Europe/Madrid,Atlantic/Canary,Africa/Ceuta|" +
+  "IT=Europe/Rome|NL=Europe/Amsterdam|BE=Europe/Brussels|PT=Europe/Lisbon,Atlantic/Madeira,Atlantic/Azores|IE=Europe/Dublin|" +
+  "GB=Europe/London|DK=Europe/Copenhagen|SE=Europe/Stockholm|NO=Europe/Oslo|FI=Europe/Helsinki|PL=Europe/Warsaw|" +
+  "CZ=Europe/Prague|HU=Europe/Budapest|RO=Europe/Bucharest|BG=Europe/Sofia|GR=Europe/Athens|TR=Europe/Istanbul,Asia/Istanbul|" +
+  "RU=Europe/Moscow,Europe/Kaliningrad,Europe/Samara,Asia/Yekaterinburg,Asia/Novosibirsk,Asia/Krasnoyarsk,Asia/Irkutsk,Asia/Yakutsk,Asia/Vladivostok|" +
+  "UA=Europe/Kyiv,Europe/Kiev|BY=Europe/Minsk|HR=Europe/Zagreb|RS=Europe/Belgrade|SI=Europe/Ljubljana|SK=Europe/Bratislava|" +
+  "LT=Europe/Vilnius|LV=Europe/Riga|EE=Europe/Tallinn|LU=Europe/Luxembourg|MT=Europe/Malta|CY=Asia/Nicosia,Europe/Nicosia|" +
+  "IS=Atlantic/Reykjavik|AL=Europe/Tirane|MK=Europe/Skopje|BA=Europe/Sarajevo|ME=Europe/Podgorica|MD=Europe/Chisinau|" +
+  "AD=Europe/Andorra|MC=Europe/Monaco|GI=Europe/Gibraltar|" +
+  "US=America/New_York,America/Chicago,America/Denver,America/Los_Angeles,America/Phoenix,America/Anchorage,Pacific/Honolulu,America/Detroit,America/Indiana/Indianapolis,America/Boise|" +
+  "CA=America/Toronto,America/Vancouver,America/Edmonton,America/Winnipeg,America/Halifax,America/St_Johns,America/Regina|" +
+  "MX=America/Mexico_City,America/Tijuana,America/Monterrey,America/Cancun,America/Chihuahua|" +
+  "BR=America/Sao_Paulo,America/Fortaleza,America/Manaus,America/Bahia,America/Recife,America/Belem,America/Porto_Velho|" +
+  "AR=America/Argentina/Buenos_Aires,America/Buenos_Aires,America/Argentina/Cordoba|CL=America/Santiago,Pacific/Easter|" +
+  "CO=America/Bogota|PE=America/Lima|VE=America/Caracas|BO=America/La_Paz|PY=America/Asuncion|UY=America/Montevideo|" +
+  "EC=America/Guayaquil,Pacific/Galapagos|PA=America/Panama|CR=America/Costa_Rica|GT=America/Guatemala|SV=America/El_Salvador|" +
+  "HN=America/Tegucigalpa|NI=America/Managua|CU=America/Havana|DO=America/Santo_Domingo|PR=America/Puerto_Rico|" +
+  "JM=America/Jamaica|HT=America/Port-au-Prince|TT=America/Port_of_Spain|" +
+  "JP=Asia/Tokyo|KR=Asia/Seoul|CN=Asia/Shanghai,Asia/Chongqing,Asia/Urumqi,Asia/Harbin|HK=Asia/Hong_Kong|TW=Asia/Taipei|" +
+  "SG=Asia/Singapore|TH=Asia/Bangkok|ID=Asia/Jakarta,Asia/Makassar,Asia/Jayapura,Asia/Pontianak|PH=Asia/Manila|" +
+  "MY=Asia/Kuala_Lumpur,Asia/Kuching|VN=Asia/Ho_Chi_Minh,Asia/Saigon|IN=Asia/Kolkata,Asia/Calcutta|PK=Asia/Karachi|" +
+  "BD=Asia/Dhaka|LK=Asia/Colombo|NP=Asia/Kathmandu,Asia/Katmandu|MM=Asia/Yangon,Asia/Rangoon|KH=Asia/Phnom_Penh|" +
+  "LA=Asia/Vientiane|AE=Asia/Dubai|SA=Asia/Riyadh|QA=Asia/Qatar|KW=Asia/Kuwait|BH=Asia/Bahrain|OM=Asia/Muscat|" +
+  "IQ=Asia/Baghdad|IR=Asia/Tehran|IL=Asia/Jerusalem,Asia/Tel_Aviv|JO=Asia/Amman|LB=Asia/Beirut|SY=Asia/Damascus|" +
+  "UZ=Asia/Tashkent|KZ=Asia/Almaty,Asia/Aqtobe|AZ=Asia/Baku|GE=Asia/Tbilisi|AM=Asia/Yerevan|MN=Asia/Ulaanbaatar|" +
+  "MO=Asia/Macau|BN=Asia/Brunei|AF=Asia/Kabul|MV=Indian/Maldives|" +
+  "EG=Africa/Cairo|NG=Africa/Lagos|ZA=Africa/Johannesburg|KE=Africa/Nairobi|MA=Africa/Casablanca|DZ=Africa/Algiers|" +
+  "TN=Africa/Tunis|GH=Africa/Accra|ET=Africa/Addis_Ababa|TZ=Africa/Dar_es_Salaam|UG=Africa/Kampala|SD=Africa/Khartoum|" +
+  "CI=Africa/Abidjan|SN=Africa/Dakar|LY=Africa/Tripoli|AO=Africa/Luanda|ZW=Africa/Harare|ZM=Africa/Lusaka|" +
+  "MZ=Africa/Maputo|CD=Africa/Kinshasa,Africa/Lubumbashi|CM=Africa/Douala|NA=Africa/Windhoek|BW=Africa/Gaborone|" +
+  "AU=Australia/Sydney,Australia/Melbourne,Australia/Brisbane,Australia/Perth,Australia/Adelaide,Australia/Hobart,Australia/Darwin|" +
+  "NZ=Pacific/Auckland|FJ=Pacific/Fiji|PG=Pacific/Port_Moresby";
+
+// Laendercode -> Breitengrad, Laengengrad (grober Mittelpunkt fuers Setzen
+// des Punktes auf dem Globus) und deutscher Anzeigename.
+const COUNTRY_INFO_RAW =
+  "DE,51.2,10.4,Deutschland|AT,47.6,14.1,Österreich|CH,46.8,8.2,Schweiz|FR,46.6,2.4,Frankreich|ES,40.2,-3.7,Spanien|" +
+  "IT,42.8,12.6,Italien|NL,52.2,5.5,Niederlande|BE,50.6,4.6,Belgien|PT,39.6,-8.0,Portugal|IE,53.2,-8.0,Irland|" +
+  "GB,54.0,-2.5,Großbritannien|DK,56.1,9.5,Dänemark|SE,62.0,15.5,Schweden|NO,64.5,12.0,Norwegen|FI,64.0,26.0,Finnland|" +
+  "PL,52.1,19.4,Polen|CZ,49.8,15.5,Tschechien|HU,47.2,19.4,Ungarn|RO,45.9,25.0,Rumänien|BG,42.7,25.3,Bulgarien|" +
+  "GR,39.1,22.0,Griechenland|TR,39.0,35.2,Türkei|RU,58.0,50.0,Russland|UA,49.0,31.5,Ukraine|BY,53.7,27.9,Belarus|" +
+  "HR,45.2,15.5,Kroatien|RS,44.2,20.9,Serbien|SI,46.1,14.8,Slowenien|SK,48.7,19.5,Slowakei|LT,55.3,23.9,Litauen|" +
+  "LV,56.9,24.6,Lettland|EE,58.7,25.5,Estland|LU,49.8,6.1,Luxemburg|MT,35.9,14.4,Malta|CY,35.1,33.2,Zypern|" +
+  "IS,64.9,-19.0,Island|AL,41.2,20.2,Albanien|MK,41.6,21.7,Nordmazedonien|BA,44.0,17.8,Bosnien-Herzegowina|" +
+  "ME,42.7,19.4,Montenegro|MD,47.2,28.5,Moldau|AD,42.5,1.5,Andorra|MC,43.7,7.4,Monaco|GI,36.1,-5.4,Gibraltar|" +
+  "US,39.8,-98.6,USA|CA,56.1,-106.3,Kanada|MX,23.6,-102.6,Mexiko|BR,-14.2,-51.9,Brasilien|AR,-38.4,-63.6,Argentinien|" +
+  "CL,-35.7,-71.5,Chile|CO,4.6,-74.3,Kolumbien|PE,-9.2,-75.0,Peru|VE,6.4,-66.6,Venezuela|BO,-16.3,-63.6,Bolivien|" +
+  "PY,-23.4,-58.4,Paraguay|UY,-32.5,-55.8,Uruguay|EC,-1.8,-78.2,Ecuador|PA,8.5,-80.8,Panama|CR,9.7,-83.8,Costa Rica|" +
+  "GT,15.8,-90.2,Guatemala|SV,13.8,-88.9,El Salvador|HN,15.2,-86.2,Honduras|NI,12.9,-85.2,Nicaragua|CU,21.5,-77.8,Kuba|" +
+  "DO,18.7,-70.2,Dominikanische Rep.|PR,18.2,-66.6,Puerto Rico|JM,18.1,-77.3,Jamaika|HT,19.0,-72.3,Haiti|" +
+  "TT,10.7,-61.2,Trinidad und Tobago|" +
+  "JP,36.2,138.3,Japan|KR,35.9,127.8,Südkorea|CN,35.9,104.2,China|HK,22.3,114.2,Hongkong|TW,23.7,121.0,Taiwan|" +
+  "SG,1.35,103.8,Singapur|TH,15.9,101.0,Thailand|ID,-0.8,113.9,Indonesien|PH,12.9,121.8,Philippinen|" +
+  "MY,4.2,101.98,Malaysia|VN,14.1,108.3,Vietnam|IN,20.6,79.0,Indien|PK,30.4,69.3,Pakistan|BD,23.7,90.4,Bangladesch|" +
+  "LK,7.9,80.8,Sri Lanka|NP,28.4,84.1,Nepal|MM,21.9,95.96,Myanmar|KH,12.6,104.99,Kambodscha|LA,19.9,102.5,Laos|" +
+  "AE,23.4,53.8,VAE|SA,23.9,45.1,Saudi-Arabien|QA,25.4,51.2,Katar|KW,29.3,47.5,Kuwait|BH,26.0,50.6,Bahrain|" +
+  "OM,21.5,55.9,Oman|IQ,33.2,43.7,Irak|IR,32.4,53.7,Iran|IL,31.05,34.85,Israel|JO,30.6,36.2,Jordanien|" +
+  "LB,33.9,35.9,Libanon|SY,34.8,39.0,Syrien|UZ,41.4,64.6,Usbekistan|KZ,48.0,66.9,Kasachstan|AZ,40.1,47.6,Aserbaidschan|" +
+  "GE,42.3,43.4,Georgien|AM,40.1,45.0,Armenien|MN,46.9,103.8,Mongolei|MO,22.2,113.5,Macau|BN,4.5,114.7,Brunei|" +
+  "AF,33.9,67.7,Afghanistan|MV,3.2,73.2,Malediven|" +
+  "EG,26.8,30.8,Ägypten|NG,9.1,8.7,Nigeria|ZA,-30.6,22.9,Südafrika|KE,-0.02,37.9,Kenia|MA,31.8,-7.1,Marokko|" +
+  "DZ,28.0,1.7,Algerien|TN,33.9,9.5,Tunesien|GH,7.9,-1.0,Ghana|ET,9.1,40.5,Äthiopien|TZ,-6.4,34.9,Tansania|" +
+  "UG,1.4,32.3,Uganda|SD,12.9,30.2,Sudan|CI,7.5,-5.5,Elfenbeinküste|SN,14.5,-14.5,Senegal|LY,26.3,17.2,Libyen|" +
+  "AO,-11.2,17.9,Angola|ZW,-19.0,29.2,Simbabwe|ZM,-13.1,27.8,Sambia|MZ,-18.7,35.5,Mosambik|CD,-4.0,21.8,DR Kongo|" +
+  "CM,7.4,12.4,Kamerun|NA,-22.96,18.5,Namibia|BW,-22.3,24.7,Botswana|" +
+  "AU,-25.3,133.8,Australien|NZ,-40.9,174.9,Neuseeland|FJ,-17.7,178.1,Fidschi|PG,-6.3,143.96,Papua-Neuguinea";
+
+// Einmalig beim Laden aufgeloest (nicht bei jedem Event neu geparst).
+const TZ_TO_COUNTRY = (()=>{
+  const map = new Map();
+  TZ_COUNTRY_RAW.split("|").forEach(entry=>{
+    const [code, zones] = entry.split("=");
+    if(!code || !zones) return;
+    zones.split(",").forEach(z => map.set(z, code));
+  });
+  return map;
+})();
+
+const COUNTRY_INFO = (()=>{
+  const map = new Map();
+  COUNTRY_INFO_RAW.split("|").forEach(entry=>{
+    const [code, lat, lng, name] = entry.split(",");
+    if(!code) return;
+    map.set(code, { code, lat: Number(lat), lng: Number(lng), name });
+  });
+  return map;
+})();
+
+// Liefert den 2-stelligen Laendercode oder null, wenn sich nichts sicher
+// bestimmen laesst. Faellt bei unbekannter Zeitzone auf die Sprach-Region
+// zurueck ("de-CH" -> CH), was bei exotischen Zonen meist noch passt.
+function detectCountry(){
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const fromTz = TZ_TO_COUNTRY.get(tz);
+    if(fromTz) return fromTz;
+    const m = String(navigator.language || "").match(/[-_]([A-Za-z]{2})$/);
+    const fromLang = m ? m[1].toUpperCase() : null;
+    return (fromLang && COUNTRY_INFO.has(fromLang)) ? fromLang : null;
+  } catch {
+    return null; // z.B. sehr alte Browser ohne Intl -- Tracking bleibt trotzdem heil
+  }
+}
+
 // =====================================================================
 //  Analytics: leichtgewichtiges Event-Tracking fuer die Storefront
 //  (page_view, banner_click, product_buy_click) — siehe analytics_events
@@ -1999,13 +2238,44 @@ function trackEvent(eventType, creatorSlug, productId){
         creator_slug: creatorSlug,
         event_type: eventType,
         product_id: productId || null,
-        device_id: getDeviceId()
+        device_id: getDeviceId(),
+        country: detectCountry()
       })
     }).catch(()=>{}); // Tracking darf niemals einen sichtbaren Fehler werfen —
                        // ein 409 (Duplikat vom selben Geraet/Produkt/Tag) ist hier
                        // erwuenschtes Verhalten, kein Fehler, deshalb kein weiteres Handling noetig.
   } catch {
     // z.B. sehr alte Browser ohne fetch — Tracking ist nie kritischer Pfad
+  }
+}
+
+// "Live gerade jetzt"-Heartbeat fuers Analytics (siehe live_sessions):
+// meldet sich alle LIVE_HEARTBEAT_MS bei Supabase, solange der Tab offen
+// bleibt -- Upsert (merge-duplicates) auf device_id aktualisiert einfach
+// den Zeitstempel der bestehenden Zeile statt Duplikate anzuhaeufen. Anders
+// als trackEvent() ist das kein "einmal beim Laden feuern", sondern muss
+// laufend wiederholt werden, damit "live" auch wirklich live bleibt.
+const LIVE_HEARTBEAT_MS = 25000;
+function sendLiveHeartbeat(){
+  if(!CREATOR_ROW) return;
+  try {
+    fetch(`${SUPABASE_URL}/rest/v1/live_sessions?on_conflict=device_id`, {
+      method: "POST",
+      keepalive: true,
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": SUPABASE_ANON,
+        "Authorization": `Bearer ${SUPABASE_ANON}`,
+        "Prefer": "resolution=merge-duplicates,return=minimal"
+      },
+      body: JSON.stringify({
+        device_id: getDeviceId(),
+        creator_slug: CREATOR_ROW.slug,
+        last_seen: new Date().toISOString()
+      })
+    }).catch(()=>{});
+  } catch {
+    // wie bei trackEvent: Tracking darf nie ein sichtbarer Fehler werden
   }
 }
 
@@ -2149,8 +2419,8 @@ function applyCreator(){
   document.getElementById("creatorHandle").textContent = CREATOR.handle;
   document.getElementById("creatorNameMain").textContent = CREATOR.name;
   document.getElementById("creatorNameSub").textContent = CREATOR.nameSub;
-  document.getElementById("tiktokLink").href = CREATOR.tiktokUrl;
-  document.getElementById("instagramLink").href = CREATOR.instagramUrl;
+  document.getElementById("tiktokLink").href = safeUrl(CREATOR.tiktokUrl);
+  document.getElementById("instagramLink").href = safeUrl(CREATOR.instagramUrl);
   document.getElementById("promoLine1").textContent = CREATOR.promoLine1;
 
   // Avatar: Bild wenn vorhanden, sonst Initiale
@@ -2204,7 +2474,10 @@ document.getElementById("loginBtn").setAttribute("aria-label",
 document.getElementById("loginBtn").onclick = ()=>{
   if(!CREATOR.loginUrl || CREATOR.loginUrl === "#") return;   // ohne hinterlegtes Ziel passiert nichts
   if(CREATOR_ROW) trackEvent("banner_click", CREATOR_ROW.slug);
-  window.location.href = CREATOR.loginUrl;
+  // Neuer Tab statt window.location.href -- sonst verlaesst der Besucher
+  // beim Klick die Website komplett, statt nur den Affiliate-Link daneben
+  // geoeffnet zu bekommen (wie bei allen anderen Buttons/Links hier).
+  window.open(safeUrl(CREATOR.loginUrl), "_blank", "noopener,noreferrer");
 };
 
 const avatarEl = document.getElementById("creatorAvatar");
@@ -2236,10 +2509,10 @@ function renderCatRow(){
     btn.type = "button";
     btn.className = "cat-item" + (activeCat===c.key ? " active":"");
     const inner = c.img
-      ? `<img src="${c.img}" alt="${c.label}">`
-      : (c.icon || (c.key === "all" ? ICON_GRID : ""));
+      ? `<img src="${aesc(c.img)}" alt="${aesc(c.label)}">`
+      : c.icon ? (c.icon === ICON_GRID ? ICON_GRID : aesc(c.icon)) : (c.key === "all" ? ICON_GRID : "");
     const label = T().cats[c.key] || c.label;
-    btn.innerHTML = `<span class="cat-circle">${inner}</span><span class="cat-label">${label}</span>`;
+    btn.innerHTML = `<span class="cat-circle">${inner}</span><span class="cat-label">${aesc(label)}</span>`;
     btn.dataset.key = c.key;
     // Ohne das hier wuerde der Browser den Button beim Antippen fokussieren
     // und dabei automatisch "ins Sichtfeld scrollen" — weil renderCatRow()
@@ -2455,7 +2728,7 @@ function buildSearchFields(p){
   const catLabel = cat ? (T().cats[p.cat] || cat.label) : "";
   return {
     titleWords: norm(p.name).split(/\s+/).filter(Boolean),
-    styleWords: norm(p.style || "").split(/\s+/).filter(Boolean),
+    styleWords: norm((p.styles || []).join(" ")).split(/\s+/).filter(Boolean),
     categoryWords: norm(catLabel).split(/\s+/).filter(Boolean)
   };
 }
@@ -2495,10 +2768,20 @@ function fuzzySearchWithFallback(query, products){
 
 function filtered(){
   return PRODUCTS.filter(p=>{
-    if(wishOnly && !pageWishlist.includes(p.id)) return false;
+    if(wishOnly) {
+      // Kategorie/Unterkategorie/Style sind in der Wunschliste unsichtbar
+      // (siehe .wishlist-view-Regel oben) -- duerfen deshalb auch nicht mehr
+      // mitfiltern, sonst fehlen gemerkte Produkte aus anderen Kategorien
+      // stillschweigend, nur weil man zuletzt in einer bestimmten Kategorie
+      // unterwegs war. Nur der Preisfilter hat hier noch eine sichtbare
+      // Bedienoberflaeche, bleibt also aktiv.
+      if(!pageWishlist.includes(p.id)) return false;
+      if(p.price < priceMin || p.price > priceMax) return false;
+      return true;
+    }
     if(activeCat !== "all" && p.cat !== activeCat) return false;
     if(activeCat !== "all" && activeSubcat !== "all" && p.subcat !== activeSubcat) return false;
-    if(activeStyle !== "ALL" && p.style !== activeStyle) return false;
+    if(activeStyle !== "ALL" && !p.styles.includes(activeStyle)) return false;
     if(p.price < priceMin || p.price > priceMax) return false;
     return true;
   });
@@ -2592,29 +2875,30 @@ function buildProductCard(p, indexInGrid = 0){
   // dem Eager-Limit: ganz normal sofort laden, kein Vorlauf-Trick noetig.
   const isEager = indexInGrid < EAGER_IMAGE_COUNT || !lazyImageObserver;
   const imgTag = !p.img ? "" : isEager
-    ? `<img class="p-img" src="${p.img}" alt="">`
-    : `<img class="p-img p-img-lazy" data-src="${p.img}" alt="">`;
+    ? `<img class="p-img" src="${aesc(p.img)}" alt="">`
+    : `<img class="p-img p-img-lazy" data-src="${aesc(p.img)}" alt="">`;
+  const buyHrefRaw = creatorAffiliate ? buildAffiliateLink(p.url, creatorAffiliate.agentId, creatorAffiliate.inviteCode) : (p.url||'');
   card.innerHTML = `
     <div class="p-thumb">
       ${imgTag}
-      ${p.discountLabel ? `<span class="p-discount-badge" style="background:${p.discountColor||'#e11d48'}">${p.discountLabel}</span>` : ""}
+      ${p.discountLabel ? `<span class="p-discount-badge" style="background:${aesc(p.discountColor||'#e11d48')}">${aesc(p.discountLabel)}</span>` : ""}
       <button class="p-heart ${isWished?'active':''}" type="button" aria-pressed="${isWished}"
-              aria-label="${isWished ? t.wishRemove : t.wishAdd}: ${p.name}">${isWished?'\u2665':'\u2661'}</button>
+              aria-label="${isWished ? t.wishRemove : t.wishAdd}: ${aesc(p.name)}">${isWished?'\u2665':'\u2661'}</button>
     </div>
     <div class="p-info">
       <div class="p-name-row">
         ${(()=>{
           const m = p.name.trim().match(/^(.*?)\s*\(([^)]+)\)\s*$/);
-          if(!m) return `<span class="p-name" title="${p.name}">${p.name}</span>`;
-          return `<span class="p-name" title="${m[1]}">${m[1]}</span><span class="p-variant-tag">${m[2]}</span>`;
+          if(!m) return `<span class="p-name" title="${aesc(p.name)}">${aesc(p.name)}</span>`;
+          return `<span class="p-name" title="${aesc(m[1])}">${aesc(m[1])}</span><span class="p-variant-tag">${aesc(m[2])}</span>`;
         })()}
       </div>
       <div class="p-buy-row">
         <span class="p-price">${formatPrice(p.price)}</span>
         <a class="p-buy"
-           href="${creatorAffiliate ? buildAffiliateLink(p.url, creatorAffiliate.agentId, creatorAffiliate.inviteCode) : (p.url||'#')}"
-           ${(creatorAffiliate ? buildAffiliateLink(p.url, creatorAffiliate.agentId, creatorAffiliate.inviteCode) : p.url) ? 'target="_blank" rel="noopener noreferrer sponsored"' : ''}
-           aria-label="${label}: ${p.name}, ${formatPrice(p.price)}">${label}</a>
+           href="${aesc(safeUrl(buyHrefRaw) || '#')}"
+           ${buyHrefRaw ? 'target="_blank" rel="noopener noreferrer sponsored"' : ''}
+           aria-label="${aesc(label)}: ${aesc(p.name)}, ${formatPrice(p.price)}">${aesc(label)}</a>
       </div>
     </div>`;
 
@@ -2713,7 +2997,7 @@ function renderCollections(){
       <div class="section-head">
         <div>
           <div class="eyebrow-small">${t.collectionEyebrow}</div>
-          <h2 class="section-title">${label}</h2>
+          <h2 class="section-title">${aesc(label)}</h2>
         </div>
         <a href="#alle" class="view-all">${t.viewAll}</a>
       </div>
@@ -2774,9 +3058,15 @@ function staggerByStyle(items){
   const styleOrder = STYLES.slice(1); // STYLES[0] ist immer "ALL", zaehlt nicht als eigener Style
   // items kommt bereits sort_order-sortiert von der DB -- der Index hier dient
   // als Rang-Ersatz, weil das gemappte Produktobjekt sort_order selbst nicht mitfuehrt.
-  const withRank = items.map((p, rank) => ({ p, rank }));
-  const buckets = styleOrder.map(s => withRank.filter(x => x.p.style === s));
-  const noStyle = withRank.filter(x => !styleOrder.includes(x.p.style));
+  // Ein Produkt mit mehreren Styles landet hier trotzdem nur in EINEM Bucket
+  // (seinem ersten bekannten Style) -- sonst wuerde es in jedem seiner Style-
+  // Bloecke nochmal auftauchen und in der "Alle Styles"-Ansicht doppelt erscheinen.
+  const withRank = items.map((p, rank) => ({
+    p, rank,
+    primaryStyle: (p.styles || []).find(s => styleOrder.includes(s)) || null
+  }));
+  const buckets = styleOrder.map(s => withRank.filter(x => x.primaryStyle === s));
+  const noStyle = withRank.filter(x => x.primaryStyle === null);
   if(noStyle.length) buckets.push(noStyle);
 
   const result = [];
@@ -3085,6 +3375,13 @@ function applyCurrency(){
   curToggle.textContent = CURRENCIES[currency].symbol;
   curToggle.setAttribute("aria-label", `${T().currencyLabel || "Currency"}: ${currencyName(currency)}`);
   renderCurMenu();
+  // Preisfilter-Anzeige (Symbol + umgerechnete Zahlen) sofort mitziehen --
+  // sonst zeigt er bis zum naechsten Slider-Kontakt weiter die alte Waehrung.
+  if(document.getElementById("pfMin")){
+    document.getElementById("pfCurMin").textContent = pfSymbol();
+    document.getElementById("pfCurMax").textContent = pfSymbol();
+    pfSyncUI();
+  }
   update();                       // Preise neu formatieren
 }
 
@@ -3155,9 +3452,19 @@ const CLOCK_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 const X_SVG     = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 5l14 14"/><path d="M19 5L5 19"/></svg>`;
 
 // ---------- Overlay-Inhalt ----------
-function renderOverlay(){
+async function renderOverlay(){
   const t = T();
-  const q = searchQuery.trim();
+  let q = searchQuery.trim();
+  // Wie update() bei Kategorie-/Style-Ansichten: eine echte Suche braucht den
+  // vollstaendigen Katalog (searchResults() durchsucht PRODUCTS direkt), sonst
+  // fehlen bei grossen Katalogen Treffer, solange der Hintergrund-Nachlade-
+  // vorgang noch laeuft (siehe loadRemainingProducts). Ohne diese Wartezeit
+  // haette man z.B. bei 7000 Produkten kurz nach dem Laden unvollstaendige
+  // Suchergebnisse bekommen, ohne jeden Hinweis darauf.
+  if(q && !productsFullyLoaded){
+    await productsFullLoadPromise;
+    q = searchQuery.trim(); // waehrend des Wartens koennte sich die Eingabe geaendert haben
+  }
   soInner.innerHTML = "";
 
   // Ohne Eingabe: der Verlauf
@@ -3278,7 +3585,7 @@ function renderSearchHits(hits, soInner){
       </span>
       <span class="so-price">${formatPrice(p.price)}</span>`;
     a.querySelector(".so-name").textContent = p.name;
-    a.querySelector(".so-meta").textContent = p.style;
+    a.querySelector(".so-meta").textContent = (p.styles || []).join(", ");
     a.addEventListener("click", ()=>{
       rememberTerm(searchQuery);
       goToProduct(p);
@@ -3381,11 +3688,6 @@ function initPriceFilter(){
   rMin.value = pfAbsMin;
   rMax.value = pfAbsMax;
 
-  document.getElementById("pfNumMin").min = pfAbsMin;
-  document.getElementById("pfNumMax").min = pfAbsMin;
-  document.getElementById("pfNumMin").value = pfAbsMin;
-  document.getElementById("pfNumMax").value = pfAbsMax;
-
   const sym = pfSymbol();
   document.getElementById("pfCurMin").textContent = sym;
   document.getElementById("pfCurMax").textContent = sym;
@@ -3394,6 +3696,14 @@ function initPriceFilter(){
   document.getElementById("priceFilterWrap").hidden = false;
 }
 
+// Die Range-Slider (rMin/rMax) und priceMin/priceMax bleiben INTERN immer in
+// der Basis-Waehrung EUR (dieselbe Einheit wie PRODUCTS[].price, siehe
+// filtered()) -- nur die angezeigten Zahlen (Label, Zahl-Felder) werden fuer
+// die aktuell gewaehlte Anzeigewaehrung umgerechnet. Ohne diese Umrechnung
+// zeigte der Filter z.B. bei CNY "¥50" statt "¥392" fuer denselben Preis, den
+// die Produktkarten (formatPrice()) korrekt umgerechnet anzeigen -- verwirrend
+// und nicht vertrauenswuerdig fuer Kaeufer, auch wenn die Filterung selbst
+// (EUR gegen EUR) technisch immer richtig blieb.
 function pfSyncUI(){
   const rMin = document.getElementById("pfMin");
   const rMax = document.getElementById("pfMax");
@@ -3403,6 +3713,8 @@ function pfSyncUI(){
   const numMin = document.getElementById("pfNumMin");
   const numMax = document.getElementById("pfNumMax");
   const sym = pfSymbol();
+  const rate = CURRENCIES[currency].rate;
+  const toDisplay = v => Math.round(v * rate);
 
   const lo = Number(rMin.value), hi = Number(rMax.value);
   const span = pfAbsMax - pfAbsMin || 1;
@@ -3410,18 +3722,20 @@ function pfSyncUI(){
   fill.style.left  = ((lo - pfAbsMin) / span * 100) + "%";
   fill.style.width = ((hi - lo) / span * 100) + "%";
 
-  numMin.value = lo;
-  numMax.value = hi;
+  numMin.min = numMax.min = toDisplay(pfAbsMin);
+  numMin.max = numMax.max = toDisplay(pfAbsMax);
+  numMin.value = toDisplay(lo);
+  numMax.value = toDisplay(hi);
 
   label.textContent = (lo === pfAbsMin && hi === pfAbsMax)
     ? "Alle Preise"
-    : `${sym}${lo} – ${sym}${hi}`;
+    : `${sym}${toDisplay(lo)} – ${sym}${toDisplay(hi)}`;
 
   // Trigger-Button zeigt aktiven Zustand
   const trigger = document.getElementById("pfTrigger");
   const isActive = lo > pfAbsMin || hi < pfAbsMax;
   trigger.classList.toggle("active", isActive);
-  document.getElementById("pfLabel").textContent = isActive ? `${sym}${lo}–${sym}${hi}` : "Preis";
+  document.getElementById("pfLabel").textContent = isActive ? `${sym}${toDisplay(lo)}–${sym}${toDisplay(hi)}` : "Preis";
 
   reset.disabled = !isActive;
 
@@ -3466,10 +3780,16 @@ function wirePriceFilter(){
   rMin.addEventListener("input", onSliderChange);
   rMax.addEventListener("input", onSliderChange);
 
-  // Zahl-Inputs → Slider + Filter (bei Enter oder Blur)
+  // Zahl-Inputs → Slider + Filter (bei Enter oder Blur). Die Felder zeigen
+  // Werte in der aktuell gewaehlten Anzeigewaehrung (siehe pfSyncUI) --
+  // deshalb hier erst zurueck in die interne Basis-Waehrung (EUR) umrechnen,
+  // bevor gegen pfAbsMin/pfAbsMax (immer EUR) geklemmt wird.
   function applyNum(){
-    const lo = Math.max(pfAbsMin, Math.min(pfAbsMax, Number(numMin.value)||pfAbsMin));
-    const hi = Math.max(pfAbsMin, Math.min(pfAbsMax, Number(numMax.value)||pfAbsMax));
+    const rate = CURRENCIES[currency].rate;
+    const typedMin = Number(numMin.value) / rate;
+    const typedMax = Number(numMax.value) / rate;
+    const lo = Math.max(pfAbsMin, Math.min(pfAbsMax, typedMin || pfAbsMin));
+    const hi = Math.max(pfAbsMin, Math.min(pfAbsMax, typedMax || pfAbsMax));
     rMin.value = Math.min(lo, hi);
     rMax.value = Math.max(lo, hi);
     pfSyncUI();
@@ -3608,6 +3928,23 @@ function scrollToFilters(){
 
 
 // ---------- Admin ----------
+
+// Unter-Admins melden sich per Benutzername an statt per E-Mail -- Supabase
+// Auth kennt aber nur E-Mail+Passwort, deshalb wird der Benutzername
+// deterministisch in eine interne "Fake-E-Mail" umgewandelt (dort geht nie
+// eine Mail ein). Muss 1:1 der gleichnamigen Logik in der Edge Function
+// manage-admins entsprechen, sonst passt der hier gebaute Login nicht mehr
+// zu der beim Anlegen tatsaechlich gespeicherten Adresse. Der Chef-Admin
+// meldet sich weiterhin mit seiner echten E-Mail an (am "@" im Eingabefeld
+// erkannt, siehe renderLogin) -- fuer den bleibt diese Umwandlung ungenutzt.
+const ADMIN_FAKE_EMAIL_DOMAIN = "@stylefinder-admin.internal";
+function sanitizeAdminUsername(raw){
+  return String(raw ?? "").trim().toLowerCase().replace(/[^a-z0-9._-]/g, "");
+}
+function buildAdminFakeEmail(username){
+  return sanitizeAdminUsername(username) + ADMIN_FAKE_EMAIL_DOMAIN;
+}
+
 const toastEl = document.createElement("div");
 toastEl.style.display = "none";
 document.body.appendChild(toastEl);
@@ -3632,7 +3969,7 @@ function closeAdmin(){
 const ALL_CREATOR_ID = "__ALL__";
 
 const app = document.getElementById("adminRoot");
-let state = { user:null, isAdmin:false, creators:[], activeId:null, products:[], categories:[], styles:[], subcategories:[], affiliateAgents:[], busy:false };
+let state = { user:null, isAdmin:false, isSuperAdmin:false, creators:[], activeId:null, products:[], categories:[], styles:[], subcategories:[], affiliateAgents:[], busy:false };
 let editingProductId = null; // Produkt-ID der gerade aufgeklappten Bearbeiten-Zeile, oder null
 
 // Anzahl Kopien pro group_id, nur relevant/befuellt in der "Alle Creator"-Ansicht —
@@ -3652,8 +3989,40 @@ let productFilterSubcat = "all";
 let productFilterStyle  = "all";
 let productFilterQuery  = "";
 
+// Mehrfachauswahl in der Produktliste — an/aus ueber den "Auswählen"-Button,
+// selectedProductIds sammelt die IDs waehrend der Modus aktiv ist. Beide
+// werden beim Creator-Wechsel zurueckgesetzt (siehe data-pick-Handler),
+// da ausgewaehlte IDs sonst zum falschen Creator gehoeren wuerden.
+let bulkSelectMode = false;
+let selectedProductIds = new Set();
+
+// Kategorie/Unterkategorie/Styles im "Produkt hinzufügen"-Formular bleiben
+// nach dem Speichern erhalten, statt bei jedem Re-Render auf die jeweils
+// erste Option zurueckzuspringen -- legt man mehrere Produkte derselben
+// Kategorie/desselben Styles hintereinander an, muss man sie so nicht jedes
+// Mal neu auswaehlen. null/"" = noch keine eigene Wahl getroffen, dann greift
+// wie bisher die erste Kategorie/"Keine". Werden beim Creator-Wechsel
+// zurueckgesetzt (siehe data-pick-Handler), da Kategorien/Styles pro Creator
+// unterschiedlich sein koennen.
+let newProductCategory = null;
+let newProductSubcat = "";
+let newProductStyles = [];
+
 const aesc = (s) => String(s ?? "").replace(/[&<>"']/g, c =>
   ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+
+// Laesst nur echte Web-/Mail-Links durch. Ohne diese Pruefung koennte ein
+// Admin-Feld (Produkt-, Promo-, How-to-, TikTok-/Instagram-Link) auf
+// "javascript:..." gesetzt werden -- beim Klick wuerde das Skript dann im
+// Browser JEDES Besuchers laufen (gespeichertes XSS ueber sonst harmlose
+// Link-Felder). data:/vbscript: & Co. werden aus demselben Grund geblockt.
+function safeUrl(u){
+  const s = String(u ?? "").trim();
+  if(!s) return "";
+  if(/^(https?|mailto|tel):/i.test(s)) return s;
+  if(/^[a-z][a-z0-9+.-]*:/i.test(s)) return "";   // andere Schemata (javascript:, data:, ...)
+  return s;   // relative/schema-lose Links (z.B. "#", "/x") bleiben erlaubt
+}
 
 function atoast(text, kind = "ok"){
   toastEl.className = "toast " + kind;
@@ -3673,20 +4042,30 @@ async function refresh(){
 
   try {
     if(user){
-      const { data, error } = await sb.from("admins").select("user_id").eq("user_id", user.id).maybeSingle();
+      const { data, error } = await sb.from("admins").select("user_id, is_super_admin").eq("user_id", user.id).maybeSingle();
       if(error) throw error;
       state.isAdmin = Boolean(data);
+      state.isSuperAdmin = Boolean(data?.is_super_admin);
     } else {
       state.isAdmin = false;
+      state.isSuperAdmin = false;
     }
 
     if(state.isAdmin){
       const { data:cs, error:csErr } = await sb.from("creators").select("*").order("created_at");
       if(csErr) throw csErr;
+      // RLS liefert einem eingeschraenkten Unter-Admin ohnehin nur die ihm
+      // zugewiesenen Creator zurueck (siehe can_manage_creator) -- state.creators
+      // ist fuer ihn also automatisch schon die richtige, kleinere Liste.
       state.creators = cs ?? [];
       // ALL_CREATOR_ID ist kein echter Eintrag in creators — bleibt hier bewusst
       // erhalten, statt beim naechsten Laden auf den ersten Creator zurueckzufallen.
-      if(state.activeId !== ALL_CREATOR_ID && !state.creators.some(c => c.id === state.activeId)){
+      // Fuer einen eingeschraenkten Unter-Admin gibt es "Alle Creator" gar nicht
+      // erst zu waehlen -- er landet immer auf einem echten, ihm zugewiesenen Creator.
+      const activeIdAllowed = state.isSuperAdmin
+        ? (state.activeId === ALL_CREATOR_ID || state.creators.some(c => c.id === state.activeId))
+        : state.creators.some(c => c.id === state.activeId);
+      if(!activeIdAllowed){
         state.activeId = state.creators[0]?.id ?? null;
       }
       await loadCategoriesFor(state.activeId);
@@ -3750,8 +4129,11 @@ function renderAdminError(e){
 // ----------------------------------------------------------- CSV Export/Import
 // CSV-Spalten nach aussen: title, price, category, style, image_url, weidian_url.
 // Intern heissen die Supabase-Spalten anders (category ist ein Key kein Label,
-// style_tag statt style, product_url statt weidian_url) — die beiden Mapper
-// unten sind die einzige Stelle, die diesen Unterschied kennen muss.
+// style_tags statt style, product_url statt weidian_url) — die beiden Mapper
+// unten sind die einzige Stelle, die diesen Unterschied kennen muss. Ein Produkt
+// kann mehrere Styles haben (style_tags ist ein Array) -- in der CSV-Spalte
+// "style" stehen sie durch "; " getrennt in einem einzigen Feld (siehe
+// joinStyleTags/splitStyleTags), statt mehrerer Spalten.
 // "id" und "creator" sind optional beim Import: leer/fehlend -> neues Produkt
 // anlegen (wie bisher). Ist "id" gesetzt UND passt zu einem bestehenden
 // Produkt, wird stattdessen dessen Zeile aktualisiert (siehe importProductsFromCSV) --
@@ -3759,6 +4141,12 @@ function renderAdminError(e){
 // Shops fuer dasselbe Produkt) per CSV-Export/-Bearbeiten/-Re-Import pflegen,
 // ohne dass jede Kopie einzeln im Admin angeklickt werden muss.
 const CSV_COLUMNS = ["id", "creator", "title", "price", "category", "subcategory", "style", "image_url", "weidian_url"];
+
+// Wandelt das style_tags-Array in ein einzelnes CSV-Feld um und zurueck.
+// "; " statt "," als Trennzeichen, damit ein Komma in einem Style-Namen nicht
+// mit dem CSV-Spaltentrenner kollidiert.
+function joinStyleTags(tags){ return (tags || []).join("; "); }
+function splitStyleTags(raw){ return String(raw ?? "").split(";").map(s => s.trim()).filter(Boolean); }
 
 function csvEscapeField(v){
   const s = v === null || v === undefined ? "" : String(v);
@@ -3781,7 +4169,7 @@ function productToCsvRow(p, catLabel, subcatLabel, creatorLabel){
     p.price ?? 0,
     catLabel(p.category) ?? p.category ?? "",
     p.subcategory ? (subcatLabel(p.category, p.subcategory) ?? p.subcategory) : "",
-    p.style_tag ?? "",
+    joinStyleTags(p.style_tags),
     p.image_url ?? "",
     p.product_url ?? ""
   ].map(csvEscapeField).join(",");
@@ -3868,6 +4256,22 @@ function parseCsv(text){
   return rows.filter(r => r.length > 1 || r[0] !== "");
 }
 
+// Liest einen Preis aus einer CSV-Zelle. Deckt sowohl das Export-Format
+// ("19.99", Punkt als Dezimaltrennzeichen) als auch von Hand in Excel mit
+// deutschem Zahlenformat eingetragene Preise ab ("19,99" oder bei groesseren
+// Betraegen "1.234,56" mit Punkt als Tausendertrenner). Ohne die Tausender-
+// Erkennung wurde "1.234,56" vorher zu "1.234.56" (zwei Punkte) und ergab
+// NaN -> der Preis landete stillschweigend bei 0.
+function parsePriceInput(raw){
+  const s = String(raw ?? "").trim();
+  if(!s) return 0;
+  const normalized = /,\d{1,2}$/.test(s)
+    ? s.replace(/\./g, "").replace(",", ".")
+    : s.replace(",", ".");
+  const n = Number(normalized);
+  return Number.isFinite(n) ? n : 0;
+}
+
 // Findet zu jedem erwarteten CSV-Header die passende Spalten-Position — case-
 // insensitiv und ohne Ruecksicht auf Reihenfolge, damit exportierte Dateien
 // (und von Hand in Excel umsortierte Spalten) trotzdem zuverlaessig einlesen.
@@ -3938,7 +4342,6 @@ async function importProductsFromCSV(file){
       skipped.push(`Zeile ${i+2}: Kategorie "${rawCategory}" nicht gefunden`);
       return;
     }
-    const priceRaw = idx.price !== undefined ? (r[idx.price] ?? "").replace(",", ".") : "";
     const rawSubcategory = idx.subcategory !== undefined ? (r[idx.subcategory] ?? "").trim() : "";
     const subcategoryKey = rawSubcategory
       ? (subcatByLabelOrKey.get(categoryKey + "|" + rawSubcategory.toLowerCase()) || null)
@@ -3947,24 +4350,37 @@ async function importProductsFromCSV(file){
       skipped.push(`Zeile ${i+2}: Unterkategorie "${rawSubcategory}" nicht bei Kategorie "${rawCategory}" gefunden`);
       return;
     }
-    const fields = {
-      title,
-      price: Number(priceRaw) || 0,
-      category: categoryKey,
-      subcategory: subcategoryKey,
-      style_tag: idx.style !== undefined ? (r[idx.style] ?? "").trim() || null : null,
-      image_url: idx.image_url !== undefined ? (r[idx.image_url] ?? "").trim() || null : null,
-      product_url: idx.weidian_url !== undefined ? (r[idx.weidian_url] ?? "").trim() || null : null
-    };
-
     const rowId = idx.id !== undefined ? (r[idx.id] ?? "").trim() : "";
+
     if(rowId){
-      toUpdate.push({ id: rowId, ...fields });
+      // Update einer bestehenden Zeile per upsert(): nur Spalten mitschicken,
+      // die in DIESER CSV-Datei ueberhaupt eine Kopfzeile haben. Eine Spalte
+      // einfach wegzulassen (statt sie mit null/[] zu befuellen) heisst fuer
+      // upsert() "nicht anfassen" -- baut man sich z.B. eine eigene CSV nur
+      // mit id+price zum Massen-Preis-Update, bleiben Style/Bild/Link der
+      // Produkte dabei unangetastet, statt bei jeder aktualisierten Zeile
+      // stillschweigend geleert zu werden.
+      const updateFields = { title, category: categoryKey };
+      if(idx.price !== undefined) updateFields.price = parsePriceInput(r[idx.price]);
+      if(idx.subcategory !== undefined) updateFields.subcategory = subcategoryKey;
+      if(idx.style !== undefined) updateFields.style_tags = splitStyleTags(r[idx.style]);
+      if(idx.image_url !== undefined) updateFields.image_url = (r[idx.image_url] ?? "").trim() || null;
+      if(idx.weidian_url !== undefined) updateFields.product_url = (r[idx.weidian_url] ?? "").trim() || null;
+      toUpdate.push({ id: rowId, ...updateFields });
       return;
     }
 
+    // Neues Produkt: hier IMMER alle Spalten setzen (auch mit Leer-/Null-
+    // Werten) -- es gibt noch keine bestehende Zeile, deren Werte durch
+    // Weglassen geschuetzt werden muessten.
     toInsert.push({
-      ...fields,
+      title,
+      price: idx.price !== undefined ? parsePriceInput(r[idx.price]) : 0,
+      category: categoryKey,
+      subcategory: subcategoryKey,
+      style_tags: idx.style !== undefined ? splitStyleTags(r[idx.style]) : [],
+      image_url: idx.image_url !== undefined ? (r[idx.image_url] ?? "").trim() || null : null,
+      product_url: idx.weidian_url !== undefined ? (r[idx.weidian_url] ?? "").trim() || null : null,
       creator_id: state.activeId,
       is_trend: false,
       sort_order: last0 + (toInsert.length + 1) * 10
@@ -4086,9 +4502,16 @@ const ANALYTICS_METRICS = {
 function render(){
   if(!state.user) return renderLogin();
   if(!state.isAdmin) return renderNoAccess();
+  // Shop-Zuweisung und Admin-Zugänge sind Chef-Admin-Sache (site-weite
+  // Infrastruktur bzw. Rechteverwaltung) -- ein direkt gesetztes adminView
+  // (z.B. aus einem alten Tab-Zustand) darf einen Unter-Admin nicht doch
+  // noch dorthin durchlassen.
+  if(adminView === "shopassign" && !state.isSuperAdmin) adminView = "dashboard";
+  if(adminView === "adminaccounts" && !state.isSuperAdmin) adminView = "dashboard";
   if(adminView === "analytics") return renderAnalytics();
   if(adminView === "revenue") return renderRevenue();
   if(adminView === "shopassign") return renderShopAssign();
+  if(adminView === "adminaccounts") return renderAdminAccounts();
   renderDashboard();
 }
 
@@ -4101,8 +4524,8 @@ function renderLogin(){
           <p class="a-sub">Nur beim ersten Mal \u2014 danach öffnet die Phrase allein.</p>
         </div>
         <form id="loginForm">
-          <label class="a-label" for="email">E-Mail</label>
-          <input id="email" class="a-field" type="email" required autocomplete="email" enterkeyhint="next" style="margin-bottom:18px">
+          <label class="a-label" for="email">E-Mail oder Benutzername</label>
+          <input id="email" class="a-field" type="text" required autocomplete="username" enterkeyhint="next" style="margin-bottom:18px">
           <label class="a-label" for="pw">Passwort</label>
           <input id="pw" class="a-field" type="password" required autocomplete="current-password" enterkeyhint="go">
           <button type="submit" class="a-btn a-btn-primary" style="width:100%;margin-top:22px">Anmelden</button>
@@ -4117,13 +4540,18 @@ function renderLogin(){
     const btn = form.querySelector("button[type=submit]");
     const originalLabel = btn.textContent;
     btn.disabled = true;
-    btn.textContent = "Meldet an …";
+    btn.textContent = "Meldet an \u2026";
     try {
+      // Enthaelt die Eingabe ein "@", ist es eine echte E-Mail (Chef-Admin) --
+      // sonst ein Benutzername (Unter-Admin), der erst in die interne
+      // Fake-Adresse umgewandelt werden muss (siehe buildAdminFakeEmail).
+      const rawId = document.getElementById("email").value.trim();
+      const loginEmail = rawId.includes("@") ? rawId : buildAdminFakeEmail(rawId);
       const { error } = await sb.auth.signInWithPassword({
-        email: document.getElementById("email").value,
+        email: loginEmail,
         password: document.getElementById("pw").value
       });
-      if(error) return atoast("E-Mail oder Passwort stimmt nicht.", "err");
+      if(error) return atoast("Zugangsdaten stimmen nicht.", "err");
       refresh();
     } catch(err) {
       // Netzwerkfehler (z.B. WLAN-/Mobilfunk-Aussetzer) wirft hier eine rohe
@@ -4226,7 +4654,7 @@ function filteredAdminProducts(){
   return state.products.filter(p=>{
     if(productFilterCat !== "all" && p.category !== productFilterCat) return false;
     if(productFilterSubcat !== "all" && (p.subcategory || "") !== productFilterSubcat) return false;
-    if(productFilterStyle !== "all" && (p.style_tag || "") !== productFilterStyle) return false;
+    if(productFilterStyle !== "all" && !(p.style_tags || []).includes(productFilterStyle)) return false;
     if(q && !p.title.toLowerCase().includes(q)) return false;
     return true;
   });
@@ -4262,13 +4690,17 @@ function buildAdminProductRows(items, all, catLabel){
     // Ohne Filter: echte Globalposition
     const pos = filterActive ? filteredIndex + 1 : i + 1;
     const maxPos = filterActive ? items.length : all.length;
+    const isSelected = selectedProductIds.has(p.id);
     return `
-              <div class="a-row ${p.is_hidden ? "is-hidden" : ""} ${editingProductId===p.id ? "is-editing" : ""}" data-id="${p.id}">
-                ${isAllMode ? "" : `
+              <div class="a-row ${p.is_hidden ? "is-hidden" : ""} ${editingProductId===p.id ? "is-editing" : ""} ${bulkSelectMode && isSelected ? "is-selected" : ""}" data-id="${p.id}">
+                ${isAllMode ? "" : (bulkSelectMode ? `
+                <label class="a-row-check">
+                  <input type="checkbox" data-select="${p.id}" ${isSelected ? "checked" : ""} aria-label="${aesc(p.title)} auswählen">
+                </label>` : `
                 <button type="button" class="a-drag-handle" data-drag="${p.id}"
                         tabindex="-1" aria-hidden="true" title="Ziehen zum Sortieren">
                   ${GRIP_SVG}
-                </button>`}
+                </button>`)}
                 ${isAllMode ? "" : `
                 <div class="a-pos-wrap" title="${filterActive ? "Position innerhalb dieser Filteransicht" : "Globale Position — direkt eingeben um Reihenfolge zu ändern"}">
                   <input class="a-pos-input ${filterActive ? "is-local" : ""}" type="number" min="1" max="${maxPos}"
@@ -4278,7 +4710,7 @@ function buildAdminProductRows(items, all, catLabel){
                 <div class="a-row-main">
                   <div class="a-row-title">${aesc(p.title)}</div>
                   <div class="a-row-meta">
-                    ${Number(p.price).toFixed(2)} € \u00b7 ${aesc(catLabel(p.category))}${p.style_tag ? " \u00b7 " + aesc(p.style_tag) : ""}
+                    ${Number(p.price).toFixed(2)} € \u00b7 ${aesc(catLabel(p.category))}${p.style_tags?.length ? " \u00b7 " + aesc(joinStyleTags(p.style_tags)) : ""}
                     ${p.is_trend ? `<span class="a-pill a-pill-trend">Trend</span>` : ""}
                     ${p.is_featured ? `<span class="a-pill a-pill-featured">\u2b50 Sammlung</span>` : ""}
                     ${isAllMode ? `<span class="a-pill">bei ${groupSize(p.group_id)} Creatorn</span>` : ""}
@@ -4291,7 +4723,7 @@ function buildAdminProductRows(items, all, catLabel){
                 </div>`}
                 <div class="a-tools">
                   ${p.product_url
-                    ? `<a class="a-icon" href="${aesc(p.product_url)}" target="_blank" rel="noopener" title="Link testen" aria-label="Link testen: ${aesc(p.title)}">\u2197</a>`
+                    ? `<a class="a-icon" href="${aesc(safeUrl(p.product_url))}" target="_blank" rel="noopener" title="Link testen" aria-label="Link testen: ${aesc(p.title)}">\u2197</a>`
                     : `<span class="a-nolink" title="Kein Link hinterlegt">kein Link</span>`}
                   ${isAllMode ? "" : `
                   <button class="a-icon a-icon-star ${p.is_featured ? "is-on" : ""}" data-star="${p.id}"
@@ -4344,8 +4776,8 @@ function buildAdminProductRows(items, all, catLabel){
                     </select>
                   </div>
                   <div>
-                    <label class="a-label" for="e-style">Style-Tag</label>
-                    <input id="e-style" class="a-field" list="styles" placeholder="OLDMONEY" value="${aesc(p.style_tag || "")}">
+                    <label class="a-label" id="e-style-label-el">Styles</label>
+                    ${buildStyleMultiSelectHtml("e-style", p.style_tags)}
                   </div>
 
                   <div>
@@ -4494,12 +4926,320 @@ function refreshAdminProductList(){
 
   const resetEl = document.getElementById("filterReset");
   if(resetEl) resetEl.hidden = !(productFilterCat!=="all" || productFilterStyle!=="all" || productFilterQuery.trim()!=="");
+
+  updateBulkBarUI();
+}
+
+// Aktualisiert nur Zaehler/Beschriftung/aktiv-Zustand der Mehrfachauswahl-Leiste
+// (bulkCount, "Alle auswählen"-Button, die drei Aktions-Buttons) -- OHNE die
+// Produktliste selbst neu zu rendern. Wird nach jedem einzelnen Checkbox-Klick
+// gebraucht (siehe change-Listener auf #list), da ein voller render() dort die
+// portionsweise geladene Liste auf die ersten 50 Zeilen zuruecksetzen wuerde.
+function updateBulkBarUI(){
+  const countEl = document.getElementById("bulkCount");
+  if(countEl) countEl.textContent = `${selectedProductIds.size} ausgewählt`;
+  ["bulkHideBtn", "bulkShowBtn", "bulkDeleteBtn"].forEach(id=>{
+    const btn = document.getElementById(id);
+    if(btn) btn.disabled = selectedProductIds.size === 0;
+  });
+  const selAllBtn = document.getElementById("bulkSelectAllBtn");
+  if(selAllBtn){
+    const items = filteredAdminProducts();
+    const allSelected = items.length > 0 && items.every(p => selectedProductIds.has(p.id));
+    selAllBtn.textContent = allSelected ? "Alle abwählen" : "Alle auswählen";
+  }
+}
+
+// Baut das Mehrfachauswahl-Dropdown fuer Style-Tags -- "Produkt hinzufügen"
+// und "Produkt bearbeiten" teilen sich dieses Markup, nur die ID-Vorsilbe
+// (fuer eindeutige Element-IDs) und die vorausgewaehlten Tags unterscheiden
+// sich. Echte Checkboxen statt einer eigenen Auswahl-Logik in JS -- beim
+// Speichern werden einfach die gerade angehakten ausgelesen (siehe
+// wireStyleMultiSelect/getSelectedStyleTags).
+function buildStyleMultiSelectHtml(prefix, selectedTags){
+  const selected = new Set(selectedTags || []);
+  const label = selected.size ? Array.from(selected).join(", ") : "Kein Style";
+  return `
+    <div class="a-multiselect" id="${prefix}Select">
+      <button type="button" class="a-field a-multiselect-btn" id="${prefix}Btn"
+              aria-haspopup="listbox" aria-expanded="false">
+        <span id="${prefix}BtnLabel">${aesc(label)}</span>
+        <svg class="a-caret" width="15" height="15" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+          <path d="M6 9l6 6 6-6"/>
+        </svg>
+      </button>
+      <div class="a-multiselect-menu" id="${prefix}Menu" role="listbox" aria-multiselectable="true" aria-label="Styles auswählen">
+        ${state.styles.length ? state.styles.map(s => `
+          <label class="a-multiselect-opt">
+            <input type="checkbox" value="${aesc(s.label)}" ${selected.has(s.label) ? "checked" : ""}>
+            <span>${aesc(s.label)}</span>
+          </label>`).join("") : `<p class="a-multiselect-empty">Noch keine Styles angelegt — unten unter „Kategorien &amp; Styles" anlegen.</p>`}
+      </div>
+    </div>`;
+}
+
+// Liest die aktuell angehakten Style-Tags eines buildStyleMultiSelectHtml-
+// Dropdowns aus (beim Speichern des Formulars).
+function getSelectedStyleTags(prefix){
+  const menu = document.getElementById(`${prefix}Menu`);
+  if(!menu) return [];
+  return Array.from(menu.querySelectorAll("input:checked")).map(cb => cb.value);
+}
+
+// Oeffnen/Schliessen + Live-Update der Knopf-Beschriftung fuer ein per
+// buildStyleMultiSelectHtml gebautes Dropdown -- gleiches Klick-ausserhalb-/
+// Escape-Verhalten wie die uebrigen eigenen Dropdowns im Dashboard
+// (a-switch, an-select, cur-menu).
+// onChange (optional) wird bei jeder Aenderung mit den aktuell angehakten
+// Style-Tags aufgerufen -- nutzt das Formular fuer "Produkt hinzufügen", um
+// newProductStyles live mitzupflegen (siehe renderDashboard).
+function wireStyleMultiSelect(prefix, onChange){
+  const wrap = document.getElementById(`${prefix}Select`);
+  const btn  = document.getElementById(`${prefix}Btn`);
+  const menu = document.getElementById(`${prefix}Menu`);
+  if(!wrap || !btn || !menu) return;
+
+  function close(){ wrap.classList.remove("open"); btn.setAttribute("aria-expanded", "false"); }
+  function open(){ wrap.classList.add("open"); btn.setAttribute("aria-expanded", "true"); }
+
+  btn.onclick = (e)=>{
+    e.stopPropagation();
+    wrap.classList.contains("open") ? close() : open();
+  };
+  document.addEventListener("click", e => { if(!wrap.contains(e.target)) close(); });
+  document.addEventListener("keydown", e => {
+    if(e.key === "Escape" && wrap.classList.contains("open")){ close(); btn.focus(); }
+  });
+
+  const labelEl = document.getElementById(`${prefix}BtnLabel`);
+  menu.querySelectorAll("input[type=checkbox]").forEach(cb=>{
+    cb.addEventListener("change", ()=>{
+      const chosen = getSelectedStyleTags(prefix);
+      labelEl.textContent = chosen.length ? chosen.join(", ") : "Kein Style";
+      if(onChange) onChange(chosen);
+    });
+  });
+}
+
+// Holt die eigentliche Fehlermeldung aus einer fehlgeschlagenen Edge-Function-
+// Antwort -- sb.functions.invoke() liefert bei einem Nicht-2xx-Status nur ein
+// generisches error.message; der hilfreiche Text (z.B. "Benutzername schon
+// vergeben") steckt im JSON-Body, den man erst ueber error.context auslesen
+// muss. Gleiches Muster wie beim Weidian-Sync-Button.
+async function extractFnError(error){
+  if(!error) return "Unbekannter Fehler.";
+  let detail = error.message;
+  try {
+    const body = await error.context?.json?.();
+    if(body?.error) detail = body.error;
+  } catch { /* Antwort war kein JSON -- bei der generischen Meldung bleiben */ }
+  return detail;
+}
+
+// Baut eine Zeile fuer die Admin-Zugaenge-Liste (Chef-Admin-Bereich). Der
+// Chef-Admin selbst bekommt keine Loeschen-/Passwort-zuruecksetzen-Buttons --
+// den eigenen Zugang verwaltet man hier nicht.
+// Baut die Checkboxen-Liste fuer die Creator-Zuweisung eines Unter-Admins --
+// gleiches Muster wie buildStyleMultiSelectHtml, nur mit Creator-IDs statt
+// Style-Labels als Wert.
+function buildCreatorAssignHtml(userId, assignedIds){
+  const assigned = new Set(assignedIds || []);
+  return `
+    <div class="a-assign-panel" id="assignPanel-${aesc(userId)}" hidden>
+      ${state.creators.length ? `
+        <div class="a-multiselect-menu a-assign-list" role="listbox" aria-multiselectable="true" aria-label="Creator zuweisen">
+          ${state.creators.map(c => `
+            <label class="a-multiselect-opt">
+              <input type="checkbox" value="${aesc(c.id)}" ${assigned.has(c.id) ? "checked" : ""}>
+              <span>${aesc(c.name)}</span>
+            </label>`).join("")}
+        </div>
+        <div class="a-actions" style="margin-top:10px">
+          <button type="button" class="a-btn a-btn-ghost" data-cancel-assign="${aesc(userId)}">Abbrechen</button>
+          <button type="button" class="a-btn a-btn-primary" data-save-assign="${aesc(userId)}">Zuweisung speichern</button>
+        </div>` : `<p class="a-empty">Erst unter „Dashboard" einen Creator anlegen.</p>`}
+    </div>`;
+}
+
+// Zeigt die zugewiesenen Creator eines Unter-Admins als Klartext -- ohne
+// jede Zuweisung ein deutlicher Hinweis, denn ohne Zuweisung kann dieser
+// Admin nirgends etwas bearbeiten (siehe can_manage_creator in der DB).
+function creatorNamesLabel(creatorIds){
+  if(!creatorIds || !creatorIds.length) return `<span class="a-assign-none">Noch keinem Creator zugewiesen — kann nirgends etwas bearbeiten.</span>`;
+  const names = creatorIds.map(id => state.creators.find(c => c.id === id)?.name).filter(Boolean);
+  return names.length ? aesc(names.join(", ")) : `<span class="a-assign-none">Zugewiesene Creator wurden gelöscht.</span>`;
+}
+
+function renderAdminAccountRow(a){
+  return `
+    <div class="a-row-wrap" data-user="${aesc(a.user_id)}">
+      <div class="a-row">
+        <div class="a-row-main">
+          <div class="a-row-title">${aesc(a.username || "Chef-Admin (E-Mail-Login)")}</div>
+          <div class="a-row-meta">${a.is_super_admin ? "Chef-Admin · sieht und bearbeitet alle Creator" : "Admin · seit " + new Date(a.created_at).toLocaleDateString("de-DE")}</div>
+          ${!a.is_super_admin ? `<div class="a-row-meta a-row-creators">${creatorNamesLabel(a.creatorIds)}</div>` : ""}
+        </div>
+        ${!a.is_super_admin ? `
+        <div class="a-tools">
+          <button type="button" class="a-btn a-btn-ghost" data-assign-admin="${aesc(a.user_id)}">Creator zuweisen</button>
+          <button type="button" class="a-btn a-btn-ghost" data-reset-admin="${aesc(a.user_id)}">Passwort zurücksetzen</button>
+          <button type="button" class="a-icon a-icon-del" data-del-admin="${aesc(a.user_id)}" aria-label="${aesc(a.username)} löschen">✕</button>
+        </div>` : ""}
+      </div>
+      ${!a.is_super_admin ? buildCreatorAssignHtml(a.user_id, a.creatorIds) : ""}
+    </div>`;
+}
+
+// Laedt die Admin-Liste ueber die manage-admins Edge Function (RLS erlaubt
+// normalen Admins nur den eigenen admins-Datensatz zu lesen, siehe
+// admins_read_own -- die vollstaendige Liste gibt es deshalb nur ueber die
+// Funktion, die serverseitig mit dem Service-Role-Key arbeitet).
+async function loadAdminAccountsList(){
+  const listEl = document.getElementById("adminAccList");
+  if(!listEl) return;
+  const { data, error } = await sb.functions.invoke("manage-admins", { body: { action: "list" } });
+  if(error){
+    listEl.innerHTML = `<p class="a-empty">Konnte nicht geladen werden: ${aesc(await extractFnError(error))}</p>`;
+    return;
+  }
+  const admins = data?.admins ?? [];
+  listEl.innerHTML = admins.length
+    ? admins.map(renderAdminAccountRow).join("")
+    : `<p class="a-empty">Keine Admins gefunden.</p>`;
+}
+
+// Eigener Top-Level-Bereich (adminView === "adminaccounts"), ueber den
+// "Admin-Zugänge"-Knopf in der Kopfzeile erreichbar -- nur fuer den Chef-
+// Admin (state.isSuperAdmin, sowohl der Knopf als auch der Zugriff hier).
+function renderAdminAccounts(){
+  app.innerHTML = `
+    <div class="a-bar">
+      <div class="a-bar-in">
+        <span class="a-brand a-brand-link" id="brandBackToSite" title="Zur Website">STYLE<span>FINDER</span><span class="a-tag">Admin-Zugänge</span></span>
+        <div class="a-bar-actions">
+          <button class="a-btn a-btn-ghost" id="backToDashboard">← Dashboard</button>
+          <button class="a-btn a-btn-ghost" id="signout">Abmelden</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="a-wrap">
+      <div class="a-card">
+        <div class="a-head">
+          <h2 class="a-h2">Admin-Zugänge</h2>
+          <p class="a-sub">Weitere Admins mit eigenem Benutzernamen + Passwort anlegen — diesen Bereich siehst nur du als Chef-Admin.</p>
+        </div>
+        <div class="a-list" id="adminAccList">
+          <p class="a-empty">Lädt …</p>
+        </div>
+        <form id="adminAccForm" class="a-grid" style="margin-top:18px;border-top:1px solid #eff1f4;padding-top:18px">
+          <div><label class="a-label" for="aa-username">Benutzername *</label><input id="aa-username" class="a-field" required placeholder="max" autocomplete="off"></div>
+          <div><label class="a-label" for="aa-password">Passwort *</label><input id="aa-password" class="a-field" type="password" required minlength="6" placeholder="mind. 6 Zeichen" autocomplete="new-password"></div>
+          <div class="a-full">
+            <label class="a-label">Darf bearbeiten</label>
+            <p class="a-hint" style="margin:0 0 10px">Ohne Häkchen kann dieser Admin sich zwar anmelden, aber nirgends etwas ändern — Häkchen lassen sich jederzeit über „Creator zuweisen" nachtragen.</p>
+            ${state.creators.length ? `
+              <div class="a-multiselect-menu a-assign-list a-assign-list-static">
+                ${state.creators.map(c => `
+                  <label class="a-multiselect-opt">
+                    <input type="checkbox" name="aa-creator" value="${aesc(c.id)}">
+                    <span>${aesc(c.name)}</span>
+                  </label>`).join("")}
+              </div>` : `<p class="a-empty">Erst unter „Dashboard" einen Creator anlegen.</p>`}
+          </div>
+          <div class="a-actions"><button class="a-btn a-btn-primary" id="aa-save">Admin anlegen</button></div>
+        </form>
+      </div>
+    </div>`;
+
+  document.getElementById("backToDashboard").onclick = ()=>{ adminView = "dashboard"; render(); };
+  document.getElementById("brandBackToSite").onclick = async ()=>{ closeAdmin(); await boot(); };
+  document.getElementById("signout").onclick = async ()=>{ await sb.auth.signOut(); refresh(); };
+
+  loadAdminAccountsList();
+
+  const aaForm = document.getElementById("adminAccForm");
+  aaForm.onsubmit = async (e)=>{
+    e.preventDefault();
+    const btn = document.getElementById("aa-save");
+    const username = document.getElementById("aa-username").value.trim();
+    const password = document.getElementById("aa-password").value;
+    const creatorIds = Array.from(aaForm.querySelectorAll('input[name="aa-creator"]:checked')).map(cb => cb.value);
+    btn.disabled = true;
+    btn.textContent = "Legt an …";
+    const { data, error } = await sb.functions.invoke("manage-admins", { body: { action: "create", username, password, creatorIds } });
+    btn.disabled = false;
+    btn.textContent = "Admin anlegen";
+    if(error) return atoast(await extractFnError(error), "err");
+    atoast(`Admin "${data.username}" angelegt.`);
+    aaForm.reset();
+    loadAdminAccountsList();
+  };
+
+  document.getElementById("adminAccList").addEventListener("click", async (e)=>{
+    const delBtn = e.target.closest("[data-del-admin]");
+    if(delBtn){
+      if(!confirm("Diesen Admin-Zugang wirklich löschen? Das lässt sich nicht rückgängig machen.")) return;
+      const { error } = await sb.functions.invoke("manage-admins", { body: { action: "delete", userId: delBtn.dataset.delAdmin } });
+      if(error) return atoast(await extractFnError(error), "err");
+      atoast("Admin gelöscht.");
+      loadAdminAccountsList();
+      return;
+    }
+    const resetBtn = e.target.closest("[data-reset-admin]");
+    if(resetBtn){
+      const newPw = prompt("Neues Passwort für diesen Admin (mind. 6 Zeichen):");
+      if(!newPw) return;
+      const { error } = await sb.functions.invoke("manage-admins", { body: { action: "reset_password", userId: resetBtn.dataset.resetAdmin, newPassword: newPw } });
+      if(error) return atoast(await extractFnError(error), "err");
+      atoast("Passwort zurückgesetzt.");
+      return;
+    }
+
+    // Creator-Zuweisung: Klick auf "Creator zuweisen" oeffnet/schliesst das
+    // dazugehoerige Panel (direkt unter der jeweiligen Admin-Zeile).
+    const assignBtn = e.target.closest("[data-assign-admin]");
+    if(assignBtn){
+      const panel = document.getElementById(`assignPanel-${assignBtn.dataset.assignAdmin}`);
+      if(panel) panel.hidden = !panel.hidden;
+      return;
+    }
+    const cancelBtn = e.target.closest("[data-cancel-assign]");
+    if(cancelBtn){
+      const panel = document.getElementById(`assignPanel-${cancelBtn.dataset.cancelAssign}`);
+      if(panel) panel.hidden = true;
+      return;
+    }
+    const saveBtn = e.target.closest("[data-save-assign]");
+    if(saveBtn){
+      const userId = saveBtn.dataset.saveAssign;
+      const panel = document.getElementById(`assignPanel-${userId}`);
+      if(!panel) return;
+      const creatorIds = Array.from(panel.querySelectorAll("input[type=checkbox]:checked")).map(cb => cb.value);
+      saveBtn.disabled = true;
+      saveBtn.textContent = "Speichert …";
+      const { error } = await sb.functions.invoke("manage-admins", { body: { action: "assign_creators", userId, creatorIds } });
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Zuweisung speichern";
+      if(error) return atoast(await extractFnError(error), "err");
+      atoast("Zuweisung gespeichert.");
+      loadAdminAccountsList();
+    }
+  });
 }
 
 function renderDashboard(){
   const isAllMode = state.activeId === ALL_CREATOR_ID;
   const active = isAllMode ? null : (state.creators.find(c => c.id === state.activeId) ?? null);
   const catLabel = k => (state.categories.find(c => c.key === k) || {}).label || k;
+
+  // Fallback auf die erste Kategorie, falls im "Produkt hinzufügen"-Formular
+  // noch keine eigene Wahl gemerkt ist (oder die gemerkte Kategorie -- z.B.
+  // nach dem Loeschen -- gar nicht mehr existiert).
+  const effectiveNewProductCategory = (newProductCategory && state.categories.some(c => c.key === newProductCategory))
+    ? newProductCategory
+    : state.categories[0]?.key;
 
   app.innerHTML = `
     <div class="a-bar">
@@ -4510,7 +5250,8 @@ function renderDashboard(){
                         title="Seite von ${aesc(active.name)} \u00f6ffnen">Seite ansehen \u2197</button>` : ""}
           <button class="a-btn a-btn-ghost" id="openAnalytics">Analytics</button>
           <button class="a-btn a-btn-ghost" id="openRevenue">Umsatz</button>
-          <button class="a-btn a-btn-ghost" id="openShopAssign">Shop-Zuweisung</button>
+          ${state.isSuperAdmin ? `<button class="a-btn a-btn-ghost" id="openShopAssign">Shop-Zuweisung</button>` : ""}
+          ${state.isSuperAdmin ? `<button class="a-btn a-btn-ghost" id="openAdminAccounts">Admin-Zugänge</button>` : ""}
           <button class="a-btn a-btn-ghost" id="signout">Abmelden</button>
         </div>
       </div>
@@ -4533,7 +5274,7 @@ function renderDashboard(){
               <span class="a-switch-name">${isAllMode ? "Alle Creator" : (active ? aesc(active.name) : "Noch kein Creator")}</span>
               <span class="a-switch-meta">${isAllMode
                 ? state.products.length + " gemeinsame Produktgruppen"
-                : (active ? "/" + aesc(active.slug) + " \u00b7 " + state.products.length + " Produkte" : "Leg unten den ersten an")}</span>
+                : (active ? "/" + aesc(active.slug) + " \u00b7 " + state.products.length + " Produkte" : (state.isSuperAdmin ? "Leg unten den ersten an" : "Noch keinem Creator zugewiesen — bitte den Chef-Admin fragen"))}</span>
             </span>
             <svg class="a-caret" width="18" height="18" viewBox="0 0 24 24" fill="none"
                  stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
@@ -4541,12 +5282,14 @@ function renderDashboard(){
             </svg>
           </button>
           <div class="a-menu" id="switchMenu" role="listbox" aria-label="Creator wählen">
+            ${state.isSuperAdmin ? `
             <button type="button" class="a-opt a-opt-add a-opt-add-pinned" id="menuAdd">
               <span class="a-av" style="background:#eef0f4;color:var(--accent)">+</span>
               <span class="a-switch-txt"><span class="a-switch-name a-opt-add">Neuen Creator anlegen</span></span>
             </button>
-            <div class="a-menu-sep"></div>
+            <div class="a-menu-sep"></div>` : ""}
             <div class="a-menu-scroll">
+              ${state.isSuperAdmin ? `
               <div class="a-opt-row">
                 <button type="button" class="a-opt" role="option" data-pick="${ALL_CREATOR_ID}"
                         aria-selected="${isAllMode}">
@@ -4561,7 +5304,7 @@ function renderDashboard(){
                   </svg>
                 </button>
               </div>
-              ${state.creators.length ? `<div class="a-menu-sep"></div>` : ""}
+              ${state.creators.length ? `<div class="a-menu-sep"></div>` : ""}` : ""}
               ${state.creators.map(c => `
                 <div class="a-opt-row">
                   <button type="button" class="a-opt" role="option" data-pick="${aesc(c.id)}"
@@ -4576,11 +5319,12 @@ function renderDashboard(){
                       <path d="M4 12.5l5 5L20 6.5"/>
                     </svg>
                   </button>
+                  ${state.isSuperAdmin ? `
                   <button type="button" class="a-opt-del" data-delcreator="${aesc(c.id)}" title="${aesc(c.name)} löschen" aria-label="${aesc(c.name)} löschen">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                       <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
                     </svg>
-                  </button>
+                  </button>` : ""}
                 </div>`).join("")}
             </div>
           </div>
@@ -4589,7 +5333,7 @@ function renderDashboard(){
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
           ${active ? `
             <button class="a-btn a-btn-ghost" id="editCreator">Bearbeiten</button>` : ""}
-          <button class="a-btn a-btn-ghost" id="toggleNew" style="margin-left:auto">+ Neuer Creator</button>
+          ${state.isSuperAdmin ? `<button class="a-btn a-btn-ghost" id="toggleNew" style="margin-left:auto">+ Neuer Creator</button>` : ""}
         </div>
 
         ${(active && !isAllMode) ? `
@@ -4820,19 +5564,18 @@ function renderDashboard(){
 
           <div>
             <label class="a-label" for="p-cat">Kategorie</label>
-            <select id="p-cat" class="a-field">${state.categories.map(c=>`<option value="${aesc(c.key)}">${aesc(c.label)}</option>`).join("")}</select>
+            <select id="p-cat" class="a-field">${state.categories.map(c=>`<option value="${aesc(c.key)}" ${c.key===effectiveNewProductCategory?"selected":""}>${aesc(c.label)}</option>`).join("")}</select>
           </div>
           <div>
             <label class="a-label" for="p-subcat">Unterkategorie</label>
             <select id="p-subcat" class="a-field">
-              <option value="">Keine</option>
-              ${state.subcategories.filter(s => s.category_key === state.categories[0]?.key).map(s=>`<option value="${aesc(s.key)}">${aesc(s.label)}</option>`).join("")}
+              <option value="" ${newProductSubcat===""?"selected":""}>Keine</option>
+              ${state.subcategories.filter(s => s.category_key === effectiveNewProductCategory).map(s=>`<option value="${aesc(s.key)}" ${s.key===newProductSubcat?"selected":""}>${aesc(s.label)}</option>`).join("")}
             </select>
           </div>
           <div>
-            <label class="a-label" for="p-style">Style-Tag</label>
-            <input id="p-style" class="a-field" list="styles" placeholder="OLDMONEY">
-            <datalist id="styles">${state.styles.map(s=>`<option value="${aesc(s.label)}">`).join("")}</datalist>
+            <label class="a-label" id="p-style-label-el">Styles</label>
+            ${buildStyleMultiSelectHtml("p-style", newProductStyles)}
           </div>
           <div>
             <label class="a-label" for="p-position">Position</label>
@@ -4970,6 +5713,25 @@ function renderDashboard(){
             : `Oben in der Liste = oben auf der Seite. ${state.products.length} ${state.products.length === 1 ? "Produkt" : "Produkte"}.`}</p>
         </div>
 
+        ${state.products.length > 0 ? `
+        <div class="a-bulk-row">
+          <button type="button" class="a-btn a-btn-ghost" id="bulkToggleBtn">${bulkSelectMode ? "Fertig" : "Auswählen"}</button>
+          ${bulkSelectMode ? (()=>{
+            const bulkItems = filteredAdminProducts();
+            const bulkAllSelected = bulkItems.length > 0 && bulkItems.every(p => selectedProductIds.has(p.id));
+            return `
+          <div class="a-bulk-bar">
+            <button type="button" class="a-btn a-btn-ghost" id="bulkSelectAllBtn">${bulkAllSelected ? "Alle abwählen" : "Alle auswählen"}</button>
+            <span class="a-bulk-count" id="bulkCount">${selectedProductIds.size} ausgewählt</span>
+            <div class="a-bulk-actions">
+              <button type="button" class="a-btn a-btn-ghost" id="bulkHideBtn" ${selectedProductIds.size ? "" : "disabled"}>Ausblenden</button>
+              <button type="button" class="a-btn a-btn-ghost" id="bulkShowBtn" ${selectedProductIds.size ? "" : "disabled"}>Einblenden</button>
+              <button type="button" class="a-btn a-btn-danger" id="bulkDeleteBtn" ${selectedProductIds.size ? "" : "disabled"}>Löschen</button>
+            </div>
+          </div>`;
+          })() : ""}
+        </div>` : ""}
+
         ${!isAllMode ? `
         <div class="a-csv-row">
           <button type="button" class="a-btn a-btn-ghost" id="csvExportBtn">
@@ -4986,7 +5748,7 @@ function renderDashboard(){
           <label class="a-upload a-csv-dropzone" id="csvDropZone">
             ${UPLOAD_SVG}
             <span>CSV-Datei w\u00e4hlen</span>
-            <span class="a-upload-hint">oder hierher ziehen \u2014 Spalten: id, creator, title, price, category, subcategory, style, image_url, weidian_url. Zeilen mit id (aus einem Export) aktualisieren die bestehende Zeile statt eine neue anzulegen.</span>
+            <span class="a-upload-hint">oder hierher ziehen \u2014 Spalten: id, creator, title, price, category, subcategory, style, image_url, weidian_url. Mehrere Styles in "style" mit Semikolon trennen (z.B. "OLDMONEY; STREETWEAR"). Zeilen mit id (aus einem Export) aktualisieren die bestehende Zeile statt eine neue anzulegen.</span>
             <input id="csvFileInput" type="file" accept=".csv,text/csv">
           </label>
           <p class="a-hint" id="csvImportStatus" style="margin-top:8px"></p>
@@ -5080,7 +5842,7 @@ async function loadAnalyticsData(){
     ? null
     : state.creators.find(c => c.id === analyticsCreatorId);
 
-  let q = sb.from("analytics_events").select("event_type, product_id, created_at, creator_slug, device_id");
+  let q = sb.from("analytics_events").select("event_type, product_id, created_at, creator_slug, device_id, country");
   if(since) q = q.gte("created_at", since.toISOString());
   if(targetCreator) q = q.eq("creator_slug", targetCreator.slug);
 
@@ -5153,7 +5915,39 @@ function aggregateAnalytics(events, products){
     .sort((a,b)=> b.count - a.count)
     .slice(0, 30);
 
-  return { pageViews, uniqueVisitors, bannerClicks, buyClickCount: buyClicks.length, conversion, series, topProducts };
+  // Herkunft fuer die Weltkarte: Aufrufe und eindeutige Besucher je Land.
+  // Events ohne Land (alle Zeilen von vor der Einfuehrung dieser Erfassung,
+  // sowie Browser ohne bestimmbare Zeitzone) fallen hier bewusst raus statt
+  // als "Unbekannt" einen Punkt irgendwo auf dem Globus zu erzeugen --
+  // dafuer meldet die Karte unten, wie viele Aufrufe ohne Land vorliegen.
+  const countries = new Map(); // code -> { views, _deviceIds:Set, buys }
+  let viewsWithoutCountry = 0;
+  events.forEach(e=>{
+    const isView = e.event_type === "page_view";
+    if(!e.country || !COUNTRY_INFO.has(e.country)){
+      if(isView) viewsWithoutCountry++;
+      return;
+    }
+    if(!countries.has(e.country)) countries.set(e.country, { views:0, buys:0, _deviceIds:new Set() });
+    const c = countries.get(e.country);
+    if(isView){
+      c.views++;
+      if(e.device_id) c._deviceIds.add(e.device_id);
+    }
+    else if(e.event_type === "product_buy_click") c.buys++;
+  });
+  const byCountry = Array.from(countries.entries())
+    .map(([code, v]) => ({
+      ...COUNTRY_INFO.get(code),
+      views: v.views,
+      buys: v.buys,
+      visitors: v._deviceIds.size
+    }))
+    .filter(c => c.views > 0)
+    .sort((a,b)=> b.views - a.views);
+
+  return { pageViews, uniqueVisitors, bannerClicks, buyClickCount: buyClicks.length, conversion,
+           series, topProducts, byCountry, viewsWithoutCountry };
 }
 
 // Klickverteilung nach Affiliate-Agent (OopBuy/HipoBuy/LitBuy/...), abgeleitet aus
@@ -5181,51 +5975,25 @@ function aggregateAgentDistribution(events, creators){
     .sort((a,b)=> b.count - a.count);
 }
 
-// Baut ein einfaches SVG-Liniendiagramm (eine Linie fuer die gewaehlte Kennzahl)
-// ohne externe Chart-Bibliothek — passend zum Rest der Datei, die bewusst ohne
-// Build-Schritt/npm-Pakete auskommt. metricKey waehlt das Feld aus series
-// ("views" | "visitors" | "bannerClicks" | "buys"), color dessen Linienfarbe.
-function buildAnalyticsChartSvg(series, metricKey, color){
-  if(!series.length) return null;
-
-  const W = 640, H = 220, padL = 34, padR = 12, padT = 14, padB = 26;
-  const innerW = W - padL - padR, innerH = H - padT - padB;
-  const maxVal = Math.max(1, ...series.map(d => d[metricKey]));
-
-  const x = i => padL + (series.length === 1 ? innerW/2 : (i/(series.length-1)) * innerW);
-  const y = v => padT + innerH - (v/maxVal) * innerH;
-
-  const linePath = series.map((d,i)=> `${i===0?"M":"L"}${x(i).toFixed(1)},${y(d[metricKey]).toFixed(1)}`).join(" ");
-
-  // Nur eine Auswahl an Datumsbeschriftungen, sonst ueberlappen sie bei langen Zeitraeumen
-  const labelEvery = Math.max(1, Math.ceil(series.length / 6));
-  const dateLabels = series.map((d,i)=>{
-    if(i % labelEvery !== 0 && i !== series.length-1) return "";
-    const dt = new Date(d.date + "T00:00:00");
-    return dt.toLocaleDateString("de-DE", { day:"2-digit", month:"2-digit" });
-  });
-
-  const gridLines = [0, 0.5, 1].map(f => {
-    const yy = padT + innerH * f;
-    return `<line x1="${padL}" y1="${yy.toFixed(1)}" x2="${W-padR}" y2="${yy.toFixed(1)}" stroke="#eef0f4" stroke-width="1"/>`;
-  }).join("");
-
-  const xLabels = series.map((d,i)=> dateLabels[i]
-    ? `<text x="${x(i).toFixed(1)}" y="${H-6}" font-size="10" fill="#9aa2b1" text-anchor="middle">${dateLabels[i]}</text>`
-    : "").join("");
-
-  return `
-    <svg class="an-chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Klick-Verlauf">
-      ${gridLines}
-      <path d="${linePath}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-      ${xLabels}
-    </svg>`;
+// Waehlt Indizes aus n Punkten fuer die Achsenbeschriftung aus, in einem
+// festen Abstand ("jeden Schritt-ten Punkt", vom LETZTEN Punkt aus rueckwaerts
+// gezaehlt) statt einer auf Anzahl gerundeten Verteilung -- eine gerundete
+// Verteilung liess die Schrittweite zwischendrin schwanken (z.B. 1,2,1,2
+// Tage), ein fester Schritt ab dem ersten Punkt liess dafuer den letzten
+// (aktuellsten) Punkt oft ganz ohne Beschriftung "in der Luft haengen". Vom
+// letzten Punkt rueckwaerts zu zaehlen loest beides: der Abstand bleibt
+// ueberall exakt gleich, UND der aktuellste Punkt hat garantiert ein Datum.
+function pickEvenLabelIndices(n, maxLabels){
+  if(n <= maxLabels) return new Set(Array.from({ length: n }, (_, i) => i));
+  const step = Math.ceil((n-1) / (maxLabels-1));
+  const indices = new Set();
+  for(let i = n-1; i >= 0; i -= step) indices.add(i);
+  return indices;
 }
 
-// Linienchart mit gefuellter Flaeche und sichtbaren Punkten fuer wenige
-// Datenpunkte (z.B. 7 Tage Umsatz) — eigene Funktion statt buildAnalyticsChartSvg
-// wiederzuverwenden, da dort Punkte/Flaeche bei taeglich vielen Analytics-Punkten
-// zu unruhig waeren; hier bei nur ~7 Werten sind sie das gewuenschte Detail.
+// Linienchart mit gefuellter Flaeche und sichtbaren Punkten — von Analytics
+// (Klick-Verlauf) und Umsatz gemeinsam genutzt, damit beide Diagramme
+// identisch aussehen und sich identisch verhalten.
 function buildAreaChartSvg(points, color, valueFormatter){
   if(!points.length) return null;
 
@@ -5256,8 +6024,22 @@ function buildAreaChartSvg(points, color, valueFormatter){
     return `<line x1="${padL}" y1="${yy.toFixed(1)}" x2="${W-padR}" y2="${yy.toFixed(1)}" stroke="#eef0f4" stroke-width="1"/>`;
   }).join("");
 
+  // Text-Anker fuer Datums-/Wertbeschriftungen: der erste und letzte Punkt
+  // liegen direkt am linken/rechten Rand des Diagramms (nur padL/padR = 12
+  // Abstand). Mit "middle" (zentriert) ragt eine mehrstellige Beschriftung
+  // dort zur Haelfte ueber den Rand hinaus und wird vom SVG abgeschnitten
+  // (sichtbar z.B. als abgeschnittenes Datum "3.08." statt "23.08."). Die
+  // Randpunkte richten ihre Beschriftung deshalb nach innen aus, statt sie
+  // zu zentrieren — alle mittleren Punkte bleiben zentriert.
+  const labelAnchor = i => {
+    if(points.length <= 1) return "middle";
+    if(i === 0) return "start";
+    if(i === points.length - 1) return "end";
+    return "middle";
+  };
+
   const xLabels = points.map((p,i)=> p.label
-    ? `<text x="${x(i).toFixed(1)}" y="${H-6}" font-size="11" font-weight="600" fill="#9aa2b1" text-anchor="middle" class="rv-fade" style="animation-delay:${(220 + i*8)}ms">${aesc(p.label)}</text>`
+    ? `<text x="${x(i).toFixed(1)}" y="${H-6}" font-size="11" font-weight="600" fill="#9aa2b1" text-anchor="${labelAnchor(i)}" class="rv-fade" style="animation-delay:${(220 + i*8)}ms">${aesc(p.label)}</text>`
     : ""
   ).join("");
 
@@ -5275,7 +6057,7 @@ function buildAreaChartSvg(points, color, valueFormatter){
     // den Linien-Zeichnen-Effekt selbst.
     const delay = 260 + (i/(points.length-1||1)) * 420;
     return `
-      <text x="${cx}" y="${(y(p.value)-14).toFixed(1)}" font-size="11" font-weight="800" fill="${isLast ? color : "#6b7280"}" text-anchor="middle" class="rv-fade" style="animation-delay:${delay.toFixed(0)}ms">${aesc(valueFormatter(p.value))}</text>
+      <text x="${cx}" y="${(y(p.value)-14).toFixed(1)}" font-size="11" font-weight="800" fill="${isLast ? color : "#6b7280"}" text-anchor="${labelAnchor(i)}" class="rv-fade" style="animation-delay:${delay.toFixed(0)}ms">${aesc(valueFormatter(p.value))}</text>
       <circle cx="${cx}" cy="${cy}" r="${isLast?5:4}" fill="#fff" stroke="${color}" stroke-width="2.5" class="rv-dot-pop" style="animation-delay:${delay.toFixed(0)}ms"/>`;
   }).join("");
 
@@ -5307,15 +6089,29 @@ let lastAnalyticsSeries = [];
 // neu rendern muss, statt die komplette Analytics-Ansicht neu zu laden.
 function renderAnalyticsChartBlock(series){
   const metric = ANALYTICS_METRICS[analyticsMetric] || ANALYTICS_METRICS.views;
-  const chartSvg = buildAnalyticsChartSvg(series, analyticsMetric, metric.color);
+  // Gleicher Chart-Baustein wie im Umsatzbereich (buildAreaChartSvg) statt einer
+  // eigenen, schlichteren Variante -- so sehen beide Verlaufs-Diagramme
+  // (gefuellte Flaeche, animierte Linie, Werte an den Punkten) identisch aus.
+  // Nur eine Auswahl an Datumsbeschriftungen, sonst ueberlappen sie sich bei langen Zeitraeumen.
+  const labelIdx = pickEvenLabelIndices(series.length, 6);
+  const points = series.map((d,i)=>{
+    const dt = new Date(d.date + "T00:00:00");
+    return {
+      value: d[analyticsMetric] ?? 0,
+      label: labelIdx.has(i) ? dt.toLocaleDateString("de-DE", { day:"2-digit", month:"2-digit" }) : ""
+    };
+  });
+  const chartSvg = buildAreaChartSvg(points, metric.color, v => Math.round(v).toLocaleString("de-DE"));
   return `
-    <p class="a-block-title" style="margin:0 0 10px">Klick-Verlauf \u00b7 ${metric.label}</p>
-    ${chartSvg ? `
-      <div class="an-chart-legend">
-        <span><span class="an-legend-dot" style="background:${metric.color}"></span>${metric.label}</span>
-      </div>
-      ${chartSvg}
-    ` : `<div class="an-chart-empty">Noch keine Daten in diesem Zeitraum.</div>`}`;
+    <div class="rv-chart-card">
+      <p class="a-block-title" style="margin:0 0 10px">Klick-Verlauf \u00b7 ${metric.label}</p>
+      ${chartSvg ? `
+        <div class="an-chart-legend">
+          <span><span class="an-legend-dot" style="background:${metric.color}"></span>${metric.label}</span>
+        </div>
+        <div class="rv-line-wrap">${chartSvg}</div>
+      ` : `<div class="an-chart-empty">Noch keine Daten in diesem Zeitraum.</div>`}
+    </div>`;
 }
 
 // Macht die KPI-Karten klickbar: Klick waehlt die Kennzahl, deren Verlauf das
@@ -5333,7 +6129,290 @@ function wireKpiCards(){
   });
 }
 
+// "Live gerade jetzt"-KPI: holt den aktuellen Zaehler per RPC und schreibt
+// ihn ins DOM. Das Element fehlt kurz bei JEDEM refreshAnalyticsBody()-
+// Aufruf (der baut #anBodyTop inkl. KPI-Grid neu auf) -- ein fehlendes Element
+// heisst hier also NICHT zwingend "Ansicht verlassen", deshalb wird das
+// Interval nur explizit beim Wegnavigieren gestoppt (siehe stopLiveVisitorPolling,
+// aufgerufen von den Kopfzeilen-Buttons in renderAnalytics), nie hier drin.
+let liveVisitorPollTimer = null;
+async function refreshLiveVisitorCount(){
+  const el = document.getElementById("liveVisitorCount");
+  if(!el) return;
+  const slug = analyticsCreatorId === "all"
+    ? null
+    : (state.creators.find(c => c.id === analyticsCreatorId)?.slug ?? null);
+  const { data, error } = await sb.rpc("get_live_visitor_count", { p_creator_slug: slug });
+  if(!error) el.textContent = (data ?? 0).toLocaleString("de-DE");
+}
+function startLiveVisitorPolling(){
+  refreshLiveVisitorCount();
+  clearInterval(liveVisitorPollTimer);
+  liveVisitorPollTimer = setInterval(refreshLiveVisitorCount, 15000);
+}
+function stopLiveVisitorPolling(){
+  clearInterval(liveVisitorPollTimer);
+  liveVisitorPollTimer = null;
+}
+
+// ---------------------------------------------------------------------
+//  Besucher-Weltkarte im Analytics-Bereich
+// ---------------------------------------------------------------------
+// Bewusst eine schlichte SVG-Karte statt eines 3D-Globus: der haette eine
+// ~1,9-MB-Bibliothek plus 700-KB-Erdtextur von einem fremden CDN gebraucht,
+// WebGL vorausgesetzt und sich nicht ins helle Dashboard-Design gefuegt.
+// Diese Karte ist Teil der Datei, laedt nichts nach, kann nicht fehlschlagen
+// und passt farblich zum Rest.
+//
+// Die Pfaddaten stammen aus Natural Earth (world-atlas 110m), vereinfacht auf
+// das Noetige: Antarktis entfernt, Ausschnitt 84°N bis 58°S (dort wohnt
+// niemand mehr, so fuellt die bewohnte Welt die Flaeche), Linienzuege per
+// Douglas-Peucker ausgeduennt und an der Datumsgrenze sauber aufgerollt.
+const WORLD_VIEWBOX = { w: 1000, h: 394.4, latTop: 84, latBottom: -58 };
+const WORLD_LAND_PATH = "M994.8,281.9L996.4,282.3L996,283.7L992.7,283.8L993.5,281.6L994.8,281.9ZM0,277.9L0.2,279.1L-3.5,280.6L-3.9,279.5L0,277.9ZM1000,277.9L1000.2,279.1L996.5,280.6L996.1,279.5L1000,277.9ZM608.9,246.3L607.8,251.3L609.6,252.3L608.9,256.9L612.4,263.2L613.3,274.1L609.6,279.7L603.9,282.2L596.6,288.3L596.4,290.2L598.8,294.7L598.5,300.3L590.5,304.8L591.4,306.1L589.5,313.2L578.4,324.3L571.6,327.6L562.7,327.4L554.5,330L550.7,327.4L549.8,323.9L550.6,321.2L542.3,308.5L539.6,294.7L532.8,283.5L532.7,277.2L534.7,270.9L537.9,266.7L538,263.1L535.8,258.8L536.8,257.1L533.1,247.3L524.4,236.4L527.2,224.8L526.1,222.9L523.6,220.1L516.4,221.5L512,215.9L505.2,216.2L494.5,220.2L487.1,219L477.8,221.2L464,211.6L463.2,208.6L458.8,203.1L453.9,199.5L453.6,195.5L451,192.4L453.6,189.9L454.8,185.6L454.8,177.5L452.6,175L455.6,167.4L458.1,165.2L459.9,160.4L463.5,156.5L467.5,155.1L473.4,150.2L472.7,146.7L474.2,142.9L480.8,138.6L483.5,134L494,135.6L504.1,131.6L514.8,131.3L517.4,130.2L523.4,130.7L526.4,129.6L528.4,129.9L528.3,131.3L530.8,130.8L529.4,132.2L530.4,134.2L530,136.6L528.2,138L528.7,139.5L531.9,141.3L542.3,143.7L543.6,146.2L553,149.2L555.7,147.2L555.1,145.1L555.9,143.8L559.8,142.1L563.6,142.7L564.5,143.9L569.9,145.6L573.6,145.6L580.3,147.6L586,145.7L588,146L588.8,147.4L589.4,146.5L593.8,147.3L596,145.7L600,137.1L600.4,133.8L599.4,132.6L600.4,131.5L596.4,131.1L594.5,132.7L590.3,133L588.1,131.5L585.1,131.4L582.5,132.9L579.8,131.4L576.8,131.5L573.1,127.2L574.5,125L572.7,123.7L575.8,121L580.1,120.9L581.2,118.8L586.5,119.2L593.1,116.6L597.7,116.5L606.5,119.6L612.1,119.4L615.4,117.9L615.1,114.9L601.9,107.6L603.9,107.2L606.2,104.9L604.6,103.8L608.7,102L597.1,104.8L597.3,106.5L601.5,107L600.9,108L594.1,110.1L592.6,109.5L593.2,108.2L590.1,107.4L593.3,106L592.5,105.3L588.2,104.6L588,103.6L585.4,103.9L582.3,108.2L580.1,108.6L579.3,111.9L576.9,115L578.1,117.7L580.5,118.6L580,119.3L576.7,119.4L573.2,121.8L572.4,119.9L569.2,119.6L565.9,120.3L567.8,121.9L566.4,122.3L563.4,120.9L562.9,121.5L564.9,124.5L563.8,125.1L566.7,127.2L566.8,128.7L564.2,128L565,129.4L563.3,129.7L564.3,132.1L562.5,132.2L560.2,131L558.7,126.9L553.9,121.5L554.3,117.4L544.5,112.5L542.2,110.4L541.4,108.1L539.6,107.7L538.8,108.9L537.9,107.9L538.7,106.7L536.5,106.3L534.2,107.3L535,110.8L542.1,116.8L544.2,116.8L544.9,117.4L544.1,117.9L551.3,121.7L550.8,122.7L546.9,121L545.7,122.8L547.7,123.8L547.4,125.3L544.7,127.8L543.6,128L544.7,125.1L542.8,122.1L533.6,117.5L529.2,114.1L528.3,111.3L524.7,110.1L518.1,113.5L512.7,112.8L508.6,113.7L508.4,117L505.8,118.8L502.3,119.4L499.2,124.1L500.3,125.7L498.1,128.8L494,131.4L487.9,131.4L485.1,133.5L483.7,133.2L481.9,130.7L475.3,130.9L475.4,127L473.5,125.7L475.6,120.1L475,115L473.9,113.8L477.8,111.8L494.7,112.7L496.2,111L496.7,105.5L491.8,101.2L487.5,100.1L487.2,98.1L495.5,98.2L494.6,95.1L497.3,96.2L503.7,94.1L504.6,91.8L510.6,89.9L513.1,85.8L519.7,84.2L522.6,84.6L524.4,83.3L522.6,79.1L522.5,76.3L523.7,74.7L529.4,73L528.5,75.3L530.3,76.5L526.8,79.2L527.6,81.7L530.4,82.3L530.4,83.3L534.8,82L539.2,84L549,81L554.6,82.1L555.2,80.9L559.1,80L558.6,75.6L559.9,73.8L562.6,72.9L564.8,75L567,74.9L567.9,71.1L565.1,70.5L564.8,68.9L571.8,67.7L577.7,68.1L580.9,66.6L578,65.3L563.5,67.1L559.2,64.7L559.8,61.9L558.5,59.4L559.8,57.8L570.5,52.5L570.3,51.3L566.4,50L561.6,50.8L558.9,52.7L559.4,54.4L549.6,59L547.6,62.9L552.2,66.4L549.6,69.6L546.7,70.2L544.1,77.5L540.7,77.2L539.2,79.4L536,79.5L528.8,68.1L523.3,71.3L519.6,72L515.7,70.6L513.9,61.2L529.2,54.2L541,45L553.3,39.4L564,38.3L568.2,36L578.2,35.6L586.9,37.6L583.3,38.4L586.4,40.1L589.3,39.1L593.8,40.8L601.4,41.5L614.1,45.9L614.2,47.8L606.6,50L592.2,48.2L596.7,50.3L597.1,54.4L602.8,56L603.2,54.6L601.5,53.4L603.3,52.4L610,54.1L612.3,53.4L610.5,51.4L616.9,48.7L622.1,49.8L623.7,47.9L621.4,46.2L622.7,44.6L620.7,42.9L628.5,43.7L630.1,45.3L626.5,45.6L626.6,47.2L628.7,48.1L633,47.5L633.7,45.8L649.2,42.1L651.3,42.2L648.6,43.9L652,44.2L663.3,42L666.5,43.7L669.7,41.8L666.7,40.2L668.2,39.3L676.4,40.1L690.3,44.2L692.2,42.7L689.3,40.7L685.9,40.4L686.8,39.1L685.3,36L694.3,30.4L701.6,31.2L702.2,32.7L699.6,35L702.2,37.8L701.6,41.6L704.6,43.3L698,49.1L701.2,49.5L708.5,45.1L706.9,43.5L708.2,41.7L705.1,41.5L704.4,39.9L706.7,37.1L703.1,34.9L708,33L707.4,31L710.2,32.5L709.1,35.2L712.1,35.7L710.8,33.7L715.5,32.6L721.3,32.4L726.4,34L723.9,31.7L723.6,28.7L741.2,28L738.9,26.5L742.1,24.7L759,22.1L768.5,22.5L779.9,21L783.3,18.6L789.9,17.5L794.6,18.4L790.8,19.1L797.1,19.5L797.9,20.9L808.5,20.2L817,22.6L816.3,24.1L803.9,27.3L813.9,27.8L815.4,29.6L821,28.5L829.9,28.9L830.6,30.2L842.2,30.6L842.4,28.5L852.7,29L857.2,30.4L858.5,32.2L856.8,33.4L864.7,36.7L867.4,33.8L871.8,35L888.5,34.8L886.5,32.2L890.2,31L915.3,32.8L924.9,36.5L941.7,36.5L944,37.6L943.6,39.7L947.1,40.4L966.2,40L971,42.5L974.5,41.6L972.2,39.8L973.5,38.6L988.1,39.2L1006.8,43.9L1014.1,46.6L1013.9,48.4L1015.7,49.1L1015.1,47L1022.6,47.5L1028.1,50.1L1020.8,51.6L1020.7,54.3L1019.6,54.8L1011.2,53L1010.5,51.8L1004.6,51.7L1003.1,50.7L1003.7,49.7L1000.3,50.3L1001.6,51.6L1000,52.8L996.4,54.1L992.8,53.9L998.2,58.4L997.9,60.3L992.7,59.7L982.4,62.1L973.1,67L969.2,65.1L961.9,67.2L960.7,66.2L958,67.4L954.3,67L950,71.5L950.1,72.7L953.3,73.3L952.9,77.3L950.4,77.4L949.2,79.8L950.3,81L945.5,82.4L944.5,85.5L940.4,86.2L939.5,89L935.5,91.6L931.8,79.5L933.1,75.6L935.4,74L935.6,72.7L939.9,72.1L954.6,63.5L956.9,59.6L953.5,59.8L951.8,62.1L944.8,65.1L942.5,61.7L935.3,62.7L928.4,67.3L930.7,69L920.2,70L920.4,68L916.1,67.6L912.6,69L895,69.3L875.3,81.3L879.7,81.6L881.1,83.4L883.8,84L885.6,82.6L888.6,82.8L892.6,85.9L892.7,88.2L890.5,91L889.1,98.7L883.9,104.7L874.6,112.8L870.9,114.4L867.4,113.1L861,116.8L860.3,119.8L854.3,122.9L853.8,124.4L856.5,126.1L859.6,131.1L859.6,134.3L858.6,135.9L851.3,137.8L851.5,134.2L850.3,131.3L852.4,130.8L850.5,128.5L848,128.7L846.4,127.5L847.8,125.9L848.1,123.5L845.2,122.4L836.3,125.3L839.4,121L837.9,119.6L830.6,124.3L827.9,124.4L826.5,125.7L827.9,127.6L830.2,128L830.3,129.3L832.5,130.1L835.6,128.1L839.9,129.3L840.3,130.7L836.4,131.5L831,136.3L834,137.9L838.6,145.3L838.6,147.3L836.8,148.1L839.1,150.4L838,154.9L836.5,155.2L829.6,165.1L821.9,170L817.1,171.6L816.1,170.7L814.6,172.1L807.7,173.9L806.8,176.8L805.2,177L805.2,173.9L801.4,173L796.4,175.8L794.1,178.4L793.5,180.4L802.4,190.9L803.7,196L803.3,200.9L792.1,209.4L791.1,207.6L791.9,205.8L787.5,203.8L785,199.5L780.1,198.2L780.5,196.1L778,196.1L775.6,207.6L777.4,207.7L779.1,212.7L786,218L787.2,219.8L787.5,225.6L789.5,229.7L787.6,229.9L781.6,225.6L778.3,218.6L778,215.4L773.6,210L773.2,211.7L772.6,210.1L774.3,201.5L769.9,186.3L764.9,189.7L761.6,188.8L762.6,185.3L762,182.7L759.8,179.5L760.2,178.5L756.6,175.9L753.9,170.1L751.4,170L750.8,172.7L747.3,172L746.9,173.1L741.6,173.6L741.8,175.7L740.3,177.3L736.3,179.2L728.3,186L728.3,187.3L723.1,189.1L721.8,204.5L720.4,204.7L719.1,206.8L720,207.7L717.4,208.5L715.4,211.2L712.8,208.6L708,197.9L706.8,192.7L704.3,188.9L701.7,174L697.7,175.7L695.7,175.3L692.1,172L693.5,171L692.6,169.9L687.3,166.8L684.4,162.7L670.8,163.7L659.4,161.8L658.3,158.4L656.9,157.9L652,159.8L643.1,155.9L639.2,149.6L635.9,149.1L633.3,150.1L635.6,156.4L639.3,159.2L639.2,161.2L641.1,164.6L641.7,161.1L643.3,161.6L642.7,164.9L643.9,166.6L650,166.3L656.6,160L656.7,164.1L657.9,166L663.1,167.9L666.1,171.3L662.5,176.6L660.6,177.1L660.3,180.7L657.2,181.7L656.3,183.7L653.5,184.3L653.5,185.5L645.5,187.8L644.9,190L637.7,192.5L635.2,194.4L626.7,196.4L625,198L620.8,198.2L618.3,191.1L618.5,186.7L613.7,179.2L608.7,174.2L608.5,170.6L606.9,167.5L604.1,165.9L597.6,155.4L596.2,155.4L597,151.4L594.2,156.5L590.1,150.4L594.7,160.7L599.1,166.9L598.7,169.1L602.4,172.2L604.1,181.6L606.7,183.3L609.1,189.1L620.3,198.9L620.2,200L618.7,200.7L622.5,204.3L623.9,204.3L642,199.9L640.4,207.8L635,218.5L629.3,225.4L619.8,232.5L615.5,238L611.8,240.5L608.9,246.3ZM-391.1,246.3L-392.2,251.3L-390.4,252.3L-391.1,256.9L-387.6,263.2L-386.7,274.1L-390.4,279.7L-396.1,282.2L-403.4,288.3L-403.6,290.2L-401.2,294.7L-401.5,300.3L-409.5,304.8L-408.6,306.1L-410.5,313.2L-421.6,324.3L-428.4,327.6L-437.3,327.4L-445.5,330L-449.3,327.4L-450.2,323.9L-449.4,321.2L-457.7,308.5L-460.4,294.7L-467.2,283.5L-467.3,277.2L-465.3,270.9L-462.1,266.7L-462,263.1L-464.2,258.8L-463.2,257.1L-466.9,247.3L-475.6,236.4L-472.8,224.8L-473.9,222.9L-476.4,220.1L-483.6,221.5L-488,215.9L-494.8,216.2L-505.5,220.2L-512.9,219L-522.2,221.2L-536,211.6L-536.8,208.6L-541.2,203.1L-546.1,199.5L-546.4,195.5L-549,192.4L-546.4,189.9L-545.2,185.6L-545.2,177.5L-547.4,175L-544.4,167.4L-541.9,165.2L-540.1,160.4L-536.5,156.5L-532.5,155.1L-526.6,150.2L-527.3,146.7L-525.8,142.9L-519.2,138.6L-516.5,134L-506,135.6L-495.9,131.6L-485.2,131.3L-482.6,130.2L-476.6,130.7L-473.6,129.6L-471.6,129.9L-471.7,131.3L-469.2,130.8L-470.6,132.2L-469.6,134.2L-470,136.6L-471.8,138L-471.3,139.5L-468.1,141.3L-457.7,143.7L-456.4,146.2L-447,149.2L-444.3,147.2L-444.9,145.1L-444.1,143.8L-440.2,142.1L-436.4,142.7L-435.5,143.9L-430.1,145.6L-426.4,145.6L-419.7,147.6L-414,145.7L-412,146L-411.2,147.4L-410.6,146.5L-406.2,147.3L-404,145.7L-400,137.1L-399.6,133.8L-400.6,132.6L-399.6,131.5L-403.6,131.1L-405.5,132.7L-409.7,133L-411.9,131.5L-414.9,131.4L-417.5,132.9L-420.2,131.4L-423.2,131.5L-426.9,127.2L-425.5,125L-427.3,123.7L-424.2,121L-419.9,120.9L-418.8,118.8L-413.5,119.2L-406.9,116.6L-402.3,116.5L-393.5,119.6L-387.9,119.4L-384.6,117.9L-384.9,114.9L-398.1,107.6L-396.1,107.2L-393.8,104.9L-395.4,103.8L-391.3,102L-402.9,104.8L-402.7,106.5L-398.5,107L-399.1,108L-405.9,110.1L-407.4,109.5L-406.8,108.2L-409.9,107.4L-406.7,106L-407.5,105.3L-411.8,104.6L-412,103.6L-414.6,103.9L-417.7,108.2L-419.9,108.6L-420.7,111.9L-423.1,115L-421.9,117.7L-419.5,118.6L-420,119.3L-423.3,119.4L-426.8,121.8L-427.6,119.9L-430.8,119.6L-434.1,120.3L-432.2,121.9L-433.6,122.3L-436.6,120.9L-437.1,121.5L-435.1,124.5L-436.2,125.1L-433.3,127.2L-433.2,128.7L-435.8,128L-435,129.4L-436.7,129.7L-435.7,132.1L-437.5,132.2L-439.8,131L-441.3,126.9L-446.1,121.5L-445.7,117.4L-455.5,112.5L-457.8,110.4L-458.6,108.1L-460.4,107.7L-461.2,108.9L-462.1,107.9L-461.3,106.7L-463.5,106.3L-465.8,107.3L-465,110.8L-457.9,116.8L-455.8,116.8L-455.1,117.4L-455.9,117.9L-448.7,121.7L-449.2,122.7L-453.1,121L-454.3,122.8L-452.3,123.8L-452.6,125.3L-455.3,127.8L-456.4,128L-455.3,125.1L-457.2,122.1L-466.4,117.5L-470.8,114.1L-471.7,111.3L-475.3,110.1L-481.9,113.5L-487.3,112.8L-491.4,113.7L-491.6,117L-494.2,118.8L-497.7,119.4L-500.8,124.1L-499.7,125.7L-501.9,128.8L-506,131.4L-512.1,131.4L-514.9,133.5L-516.3,133.2L-518.1,130.7L-524.7,130.9L-524.6,127L-526.5,125.7L-524.4,120.1L-525,115L-526.1,113.8L-522.2,111.8L-505.3,112.7L-503.8,111L-503.3,105.5L-508.2,101.2L-512.5,100.1L-512.8,98.1L-504.5,98.2L-505.4,95.1L-502.7,96.2L-496.3,94.1L-495.4,91.8L-489.4,89.9L-486.9,85.8L-480.3,84.2L-477.4,84.6L-475.6,83.3L-477.4,79.1L-477.5,76.3L-476.3,74.7L-470.6,73L-471.5,75.3L-469.7,76.5L-473.2,79.2L-472.4,81.7L-469.6,82.3L-469.6,83.3L-465.2,82L-460.8,84L-451,81L-445.4,82.1L-444.8,80.9L-440.9,80L-441.4,75.6L-440.1,73.8L-437.4,72.9L-435.2,75L-433,74.9L-432.1,71.1L-434.9,70.5L-435.2,68.9L-428.2,67.7L-422.3,68.1L-419.1,66.6L-422,65.3L-436.5,67.1L-440.8,64.7L-440.2,61.9L-441.5,59.4L-440.2,57.8L-429.5,52.5L-429.7,51.3L-433.6,50L-438.4,50.8L-441.1,52.7L-440.6,54.4L-450.4,59L-452.4,62.9L-447.8,66.4L-450.4,69.6L-453.3,70.2L-455.9,77.5L-459.3,77.2L-460.8,79.4L-464,79.5L-471.2,68.1L-476.7,71.3L-480.4,72L-484.3,70.6L-486.1,61.2L-470.8,54.2L-459,45L-446.7,39.4L-436,38.3L-431.8,36L-421.8,35.6L-413.1,37.6L-416.7,38.4L-413.6,40.1L-410.7,39.1L-406.2,40.8L-398.6,41.5L-385.9,45.9L-385.8,47.8L-393.4,50L-407.8,48.2L-403.3,50.3L-402.9,54.4L-397.2,56L-396.8,54.6L-398.5,53.4L-396.7,52.4L-390,54.1L-387.7,53.4L-389.5,51.4L-383.1,48.7L-377.9,49.8L-376.3,47.9L-378.6,46.2L-377.3,44.6L-379.3,42.9L-371.5,43.7L-369.9,45.3L-373.5,45.6L-373.4,47.2L-371.3,48.1L-367,47.5L-366.3,45.8L-350.8,42.1L-348.7,42.2L-351.4,43.9L-348,44.2L-336.7,42L-333.5,43.7L-330.3,41.8L-333.3,40.2L-331.8,39.3L-323.6,40.1L-309.7,44.2L-307.8,42.7L-310.7,40.7L-314.1,40.4L-313.2,39.1L-314.7,36L-305.7,30.4L-298.4,31.2L-297.8,32.7L-300.4,35L-297.8,37.8L-298.4,41.6L-295.4,43.3L-302,49.1L-298.8,49.5L-291.5,45.1L-293.1,43.5L-291.8,41.7L-294.9,41.5L-295.6,39.9L-293.3,37.1L-296.9,34.9L-292,33L-292.6,31L-289.8,32.5L-290.9,35.2L-287.9,35.7L-289.2,33.7L-284.5,32.6L-278.7,32.4L-273.6,34L-276.1,31.7L-276.4,28.7L-258.8,28L-261.1,26.5L-257.9,24.7L-241,22.1L-231.5,22.5L-220.1,21L-216.7,18.6L-210.1,17.5L-205.4,18.4L-209.2,19.1L-202.9,19.5L-202.1,20.9L-191.5,20.2L-183,22.6L-183.7,24.1L-196.1,27.3L-186.1,27.8L-184.6,29.6L-179,28.5L-170.1,28.9L-169.4,30.2L-157.8,30.6L-157.6,28.5L-147.3,29L-142.8,30.4L-141.5,32.2L-143.2,33.4L-135.3,36.7L-132.6,33.8L-128.2,35L-111.5,34.8L-113.5,32.2L-109.8,31L-84.7,32.8L-75.1,36.5L-58.3,36.5L-56,37.6L-56.4,39.7L-52.9,40.4L-33.8,40L-29,42.5L-25.5,41.6L-27.8,39.8L-26.5,38.6L-11.9,39.2L6.8,43.9L14.1,46.6L13.9,48.4L15.7,49.1L15.1,47L22.6,47.5L28.1,50.1L20.8,51.6L20.7,54.3L19.6,54.8L11.2,53L10.5,51.8L4.6,51.7L3.1,50.7L3.7,49.7L0.3,50.3L1.6,51.6L-0,52.8L-3.6,54.1L-7.2,53.9L-1.8,58.4L-2.1,60.3L-7.3,59.7L-17.6,62.1L-26.9,67L-30.8,65.1L-38.1,67.2L-39.3,66.2L-42,67.4L-45.7,67L-50,71.5L-49.9,72.7L-46.7,73.3L-47.1,77.3L-49.6,77.4L-50.8,79.8L-49.7,81L-54.5,82.4L-55.5,85.5L-59.6,86.2L-60.5,89L-64.5,91.6L-68.2,79.5L-66.9,75.6L-64.6,74L-64.4,72.7L-60.1,72.1L-45.4,63.5L-43.1,59.6L-46.5,59.8L-48.2,62.1L-55.2,65.1L-57.5,61.7L-64.7,62.7L-71.6,67.3L-69.3,69L-79.8,70L-79.6,68L-83.9,67.6L-87.4,69L-105,69.3L-124.7,81.3L-120.3,81.6L-118.9,83.4L-116.2,84L-114.4,82.6L-111.4,82.8L-107.4,85.9L-107.3,88.2L-109.5,91L-110.9,98.7L-116.1,104.7L-125.4,112.8L-129.1,114.4L-132.6,113.1L-139,116.8L-139.7,119.8L-145.7,122.9L-146.2,124.4L-143.5,126.1L-140.4,131.1L-140.4,134.3L-141.4,135.9L-148.7,137.8L-148.5,134.2L-149.7,131.3L-147.6,130.8L-149.5,128.5L-152,128.7L-153.6,127.5L-152.2,125.9L-151.9,123.5L-154.8,122.4L-163.7,125.3L-160.6,121L-162.1,119.6L-169.4,124.3L-172.1,124.4L-173.5,125.7L-172.1,127.6L-169.8,128L-169.7,129.3L-167.5,130.1L-164.4,128.1L-160.1,129.3L-159.7,130.7L-163.6,131.5L-169,136.3L-166,137.9L-161.4,145.3L-161.4,147.3L-163.2,148.1L-160.9,150.4L-162,154.9L-163.5,155.2L-170.4,165.1L-178.1,170L-182.9,171.6L-183.9,170.7L-185.4,172.1L-192.3,173.9L-193.2,176.8L-194.8,177L-194.8,173.9L-198.6,173L-203.6,175.8L-205.9,178.4L-206.5,180.4L-197.6,190.9L-196.3,196L-196.7,200.9L-207.9,209.4L-208.9,207.6L-208.1,205.8L-212.5,203.8L-215,199.5L-219.9,198.2L-219.5,196.1L-222,196.1L-224.4,207.6L-222.6,207.7L-220.9,212.7L-214,218L-212.8,219.8L-212.5,225.6L-210.5,229.7L-212.4,229.9L-218.4,225.6L-221.7,218.6L-222,215.4L-226.4,210L-226.8,211.7L-227.4,210.1L-225.7,201.5L-230.1,186.3L-235.1,189.7L-238.4,188.8L-237.4,185.3L-238,182.7L-240.2,179.5L-239.8,178.5L-243.4,175.9L-246.1,170.1L-248.6,170L-249.2,172.7L-252.7,172L-253.1,173.1L-258.4,173.6L-258.2,175.7L-259.7,177.3L-263.7,179.2L-271.7,186L-271.7,187.3L-276.9,189.1L-278.2,204.5L-279.6,204.7L-280.9,206.8L-280,207.7L-282.6,208.5L-284.6,211.2L-287.2,208.6L-292,197.9L-293.2,192.7L-295.7,188.9L-298.3,174L-302.3,175.7L-304.3,175.3L-307.9,172L-306.5,171L-307.4,169.9L-312.7,166.8L-315.6,162.7L-329.2,163.7L-340.6,161.8L-341.7,158.4L-343.1,157.9L-348,159.8L-356.9,155.9L-360.8,149.6L-364.1,149.1L-366.7,150.1L-364.4,156.4L-360.7,159.2L-360.8,161.2L-358.9,164.6L-358.3,161.1L-356.7,161.6L-357.3,164.9L-356.1,166.6L-350,166.3L-343.4,160L-343.3,164.1L-342.1,166L-336.9,167.9L-333.9,171.3L-337.5,176.6L-339.4,177.1L-339.7,180.7L-342.8,181.7L-343.7,183.7L-346.5,184.3L-346.5,185.5L-354.5,187.8L-355.1,190L-362.3,192.5L-364.8,194.4L-373.3,196.4L-375,198L-379.2,198.2L-381.7,191.1L-381.5,186.7L-386.3,179.2L-391.3,174.2L-391.5,170.6L-393.1,167.5L-395.9,165.9L-402.4,155.4L-403.8,155.4L-403,151.4L-405.8,156.5L-409.9,150.4L-405.3,160.7L-400.9,166.9L-401.3,169.1L-397.6,172.2L-395.9,181.6L-393.3,183.3L-390.9,189.1L-379.7,198.9L-379.8,200L-381.3,200.7L-377.5,204.3L-376.1,204.3L-358,199.9L-359.6,207.8L-365,218.5L-370.7,225.4L-380.2,232.5L-384.5,238L-388.2,240.5L-391.1,246.3ZM635.8,126.9L636.7,128.9L641.2,130.9L649.5,130.6L649.7,125.1L647.5,124.2L648.2,122.3L646.4,122.1L647,119.8L649.6,120.5L652,119.6L649.2,116.3L647,117L646.7,119.1L645.8,114.5L642.6,113.5L639.7,109.4L642.4,109.7L642.5,107.6L647.3,107.6L647.3,103.2L642.2,102.6L636.4,104.4L629.7,109.4L632.2,112L631.9,113.9L637.8,120.6L640,121.5L637.7,121.7L635.8,126.9ZM108.4,39.7L120.8,41.9L126.6,39.9L130.8,40.3L139.5,38.3L141.4,39.5L144.1,37.5L150.7,40.3L154.4,38.4L154.8,40.6L162.6,39.4L179.9,41.9L183.6,43.3L179.7,44.7L184.7,45.3L194.6,44.5L197.6,46.2L200.6,44.8L197.7,43.6L199.5,42.6L205.1,42.2L210.2,44.4L218.2,45.4L226.5,45L226.2,43.3L228.7,42.8L233,43.8L233,46.4L234.8,44.2L237,44.3L238.2,41.5L232,38.6L232.2,35.6L235.5,33.5L242,35.2L245.8,38.4L243.3,39.7L248.5,40.3L248.5,43.1L252.2,40.9L255.5,42.7L254.7,44.8L257.4,46.7L262.3,42.3L262.4,39.2L270.5,39.8L274.2,41.2L274.4,42.6L272.3,44.1L274.3,45.6L273.9,46.9L268.5,48.9L261.8,48.4L257.4,53.4L254.2,55.3L248,56.6L247.9,58.4L244.6,58.8L238.2,64.2L237,69.6L241.1,70L243.6,74.7L247.5,74.2L263.9,79.7L271.5,80.1L271.9,85.3L273.9,88.4L278,91.1L280.2,90.2L281.7,87.3L280.2,82.9L278.3,81.5L282.7,80.2L287.4,76.3L285.3,72.1L281.9,70L285.2,67.1L283,60.2L294.9,59.9L301.7,63.5L306.7,63.7L307.5,69.6L312.1,71.6L316.1,70.1L320.6,65.7L329.5,75.1L328.3,76.8L334.5,80L340.7,81.6L341.8,83.9L345.1,85.4L345.3,88.5L333.2,93.8L315.6,93.8L309.7,97L302.5,103.3L304.8,102.8L309.3,99.2L315.1,96.8L319.3,96.6L321.7,97.9L319.1,99.8L320.9,104.9L324.5,106.3L329.1,105.9L331.9,102.7L332.1,104.8L333.9,105.8L318.4,112.4L316.3,112.2L316.2,109.8L321,107.5L313.5,107.9L314,108.9L305.2,112L303.8,113.6L303.3,115.7L304.2,117.2L305.3,117.3L305,116.2L305.9,116.9L305.7,117.7L295.3,119.6L300.2,119.6L294.6,120.1L294,123L291.9,125.2L290.2,123.6L291.5,126.6L289.1,129.9L289.7,127.9L288.2,126.9L287.9,124.6L288,127.5L286.1,127.1L288.1,128L289.6,134.6L287.9,136.6L280.4,140.3L274.1,146L274.1,149.9L277.6,158.6L276.7,163.3L274.5,163.3L273,161.5L269.8,155.9L270.4,154L267.5,150.2L263.6,151L260,148.9L251.1,149.5L251.6,152.3L239.3,150.8L231.7,154.7L229.5,157.3L230.2,161.5L228.1,171L230,176L233.6,181L237.7,182.9L246.1,180.9L247.9,179.7L249.2,175L258.2,173.5L258.8,175.4L256.6,178.7L256,182.6L254.7,181.9L254.6,187.4L253,189.2L263.9,188.9L268.3,190.9L268.9,193.6L267.2,202.5L271.6,208.3L275.1,208.7L279,206.6L286.6,209.3L289.8,207.1L290.3,203.8L291.9,202.5L296.1,202.1L300.7,198.8L302.4,199.7L301.8,201.3L300.1,201.6L301,204.3L299.8,205.9L300.8,208.1L302,207.9L302.7,205.9L301.7,202.8L305.1,201.7L304.7,200.4L305.7,199.5L306.7,201.5L308.7,201.5L310.6,204L316,203.7L319.8,205.3L321.3,203.8L328.1,203.5L325.8,204.4L326.7,205.7L331,207.3L331.5,209.5L335.8,211.1L337.6,214.3L341.3,216.7L350.1,217.3L357.5,221.6L359.7,228L361.2,228.5L361.3,230.4L359.2,232.7L364.9,234L365,236.7L367.2,234.9L375.3,237.6L376.6,239.2L376.2,240.8L379.4,239.9L388.9,241.3L396.6,246.7L402.1,248.5L403.5,253.7L402.4,258.3L392.6,269.6L390.9,282.9L386.3,294.2L384,295.4L383.4,297.1L376,298.2L367.6,302.4L365.3,305.2L364.2,313L350.5,328.8L347.4,330.4L343.8,330.1L339.4,329L337.7,327.5L337.5,328.9L341,331.3L340.7,333.2L342.4,334.4L339.6,339.4L335.5,340.9L326.8,341.2L327.4,346.3L322.9,347.6L320.2,346.6L319.1,347.4L319.5,350.1L321.4,351L322.9,350.1L323.7,351.5L318.9,354.1L317.9,358.4L315.3,358.4L313.1,359.8L312.3,361.9L317.7,364.5L316.7,367L313.4,368.6L311.6,371.8L308,374.2L308.8,377.1L310.7,378.7L307.1,378.5L303.2,380.2L302.8,382.8L301.6,382.9L291.8,378.5L290.9,376.7L291.7,375.1L290.3,373.2L290,368.5L291.2,365.8L294.1,363.7L289.9,362.9L292.5,360.4L293.5,355.8L296.6,356.8L298,351L296.1,350.3L295.3,353.8L293.5,353.4L295.3,344.2L296.6,342.3L295.6,336.5L296.8,336.4L301.6,323.3L301.4,313.5L303,310.1L305.1,288.2L304.5,284.3L301.5,281.5L288.9,274L288.2,270.9L278.4,253.3L274.3,250.4L275.2,249.1L273.9,246.5L278.4,240.7L277.8,239.5L276.8,240.8L275.1,239.5L275.2,236.2L276.2,235.8L277.5,231.2L281,229.5L282.1,226L283.5,225.8L285.8,222.6L284.7,222L284.8,214.7L282.7,212.4L282.8,210.2L279,208.5L276.4,210.8L277.8,212.3L275.3,213.3L274.8,211.6L268,209.8L267.7,208.2L264,205.3L263.6,206.8L262.1,205.7L261.9,202.5L256.5,197.5L257.5,197.2L257,196.4L254.2,196.7L246.6,194.6L237,188.3L231.8,189.8L212.5,182.5L207,177.9L206.3,176.6L207.2,176.3L207.6,173.8L205.5,170.1L198.9,163.4L196.5,162.3L196.4,159.9L193.4,157.9L192.7,155.9L188.3,152.9L185.7,146.7L181.2,145L181.5,149.5L190,159.3L192.6,165.8L194,165.9L196,168.9L194.4,169.9L193.6,168.2L188.4,164.6L188.1,161.1L180.4,156.3L181.8,156.3L182.9,154L179.1,151.2L174.2,141.5L170.8,138.8L164.9,137.2L154.5,121.3L155,116.7L154.1,114.5L155.8,106.9L153.7,99.5L158,99.9L159.5,102.5L160.2,101.8L158.8,97.2L151,93.3L146,92.1L144.5,89.7L144.9,88L141.3,86.8L140.8,84.5L137.5,82.5L137.4,81.1L133.4,79.2L132.6,76.7L129.1,74.5L127.6,71.9L120.5,71.6L111.5,67.9L100.1,66.7L91.4,64.2L88.3,64.8L88.8,66.7L78.6,69L79.4,64.6L82.4,63.8L81.6,63.1L72.2,68.5L74.2,69.8L71.6,71.8L65.8,73.8L59.9,77.8L47,81.4L41.8,81.7L50.5,78.1L54,77.7L59.2,74.9L61.9,73.4L63.8,69.7L58.2,71L56.4,69.6L55.6,70.6L54.6,69.2L50.1,70.3L50.4,67.7L48.6,66.7L45,67.2L40.7,65.2L40.7,63.7L38.6,62.5L39.6,60.9L42.9,57.9L47,58.2L53.4,56.2L51.3,54.4L53.4,53.4L47.9,54.6L41.8,54.3L37.7,53.6L33,50.9L43.1,48.4L45.4,48.4L45,49.8L50.9,49.7L40.6,44.3L36.8,43.4L38.3,42L43.3,41.9L50.3,38L65.1,35.1L71.3,36.9L77.2,36.6L81.3,37.7L108.4,39.7ZM266.7,59.8L268.8,58.6L272.6,58.6L269.3,60.7L266.7,59.8ZM278.4,31.1L275.3,29.6L275.5,28.6L283.2,28.7L288.2,31L278.4,31.1ZM276.9,60.9L278,60L279.8,60.7L278.7,62.1L276.9,60.9ZM240,25.1L238.5,26.1L231.1,25.2L236.5,23.2L240,25.1ZM231.2,14.5L234.6,15.5L233.8,16.5L229.7,17.1L227.4,16.4L226,14.2L231.2,14.5ZM255.1,26.7L243.3,25.4L242,22.5L239.2,21.3L230.2,20.1L231.3,19L245.5,20.1L247.9,21L247.3,22L252.3,23.3L274.6,23L278.2,25.2L272.4,26.5L255.1,26.7ZM190.9,16.2L194.9,16.7L188.7,18.3L184.6,17.4L190.9,16.2ZM191.8,14.4L195.4,15L187.4,15.5L191.8,14.4ZM345.6,90.8L342.2,95L344,94L345.9,94.6L344.9,95.6L351.5,96.5L350.6,98.6L352.5,98.1L353.8,101.3L352.6,103.7L349.5,103.3L350.1,101L349.3,100.7L346.1,103.1L344.5,103L346.4,101.7L343.7,101L335.4,101.1L334.9,100.3L336.7,99.3L335.5,98.5L340.7,92.4L344.8,89.9L346.1,90L345.6,90.8ZM267,52.5L273.2,54.3L273.5,55.6L277.5,56.3L275,57.2L270.7,56.5L269.1,55.3L262.4,58.2L261.5,56.6L257.7,56.8L260.1,55.5L261.4,50.7L267,52.5ZM281.2,32.4L283.8,31.2L293.8,34L294.2,35.2L299.3,34.6L302.2,36.3L308.9,37.4L314,41.1L308.9,42.4L319.8,44.9L323.8,47.4L328.2,47.6L327.3,49.5L322.5,52.8L314.7,48.9L311.1,49.3L310.7,50.9L318.6,54.5L320.4,57.2L319.4,59.2L308.9,56.3L316.2,61.3L308.7,60.2L292.1,53.7L292.2,54.5L284.1,54.9L281.8,54L283.6,51.9L294.6,51.5L293.6,50.5L294.6,49.1L298.2,46.4L296.4,44.2L286.5,42L288.3,41.2L280.7,38.4L274.2,39.6L253.7,37.7L251.4,36.8L254.3,35.5L250.3,35.5L249.4,32.7L251.6,30.2L254.4,29.1L261.6,28.3L259.6,30.1L261.7,31.8L264.3,29.6L271.3,28.5L276.1,31.3L275.7,33.2L281.2,32.4ZM237.5,27.4L248.6,28.2L238.1,33.3L235,33.2L233.3,29.3L237.5,27.4ZM158.7,21.9L169.2,18L177.2,17.7L176.8,19.8L174.7,20.7L162.5,22.5L158.7,21.9ZM131.4,83.2L134,83L133.2,86.1L135.6,88.4L130.4,85L130.1,82.9L131.4,83.2ZM207,13L219.9,14.4L223.1,16.9L207.8,15.6L210.5,14.8L207.2,14.1L207,13ZM156.9,98.6L151,97.7L147.1,94.9L144.3,94.4L143.5,92.3L150.7,93.6L156.9,98.6ZM162.4,26.5L173.5,27.3L179.1,29.2L168.8,31.9L165.4,33.8L165.4,35L158.1,36.4L150.2,33.7L155.7,28.7L153,27L162.4,26.5ZM200.5,22.6L205.9,22.3L206.4,23.7L204.7,25L188.3,26.6L184,26.7L183.7,25.8L189.5,24.5L173,24.4L179.4,20.9L197,23.7L193.1,21L195.6,20L198.5,20.3L200.5,22.6ZM204.1,30.3L207.2,31.5L209.8,36.1L219.5,38.8L219.2,40L214.6,40.3L216.4,41.3L215.5,42.3L205.7,41.2L185.2,43L183.7,41.6L177.5,41.2L174.1,39L187.7,37.9L172.5,37.4L171,36.4L177.5,35.2L168.3,34.6L172.6,31.4L180,29.7L182.9,30.2L181.5,31.5L187.7,30.7L191.5,32.1L194.7,30.7L197.2,31.6L199.5,34.3L200.9,33.2L198.9,30.3L204.1,30.3ZM221,31.4L217.9,29.6L221.2,28.2L229.5,28.4L230.2,29.2L227.6,30.6L231.8,31.8L231.3,34.3L226.8,35.4L215.3,31.9L215.3,31L221,31.4ZM203.9,28.9L209.7,29.4L207.3,31.2L202.9,29.3L203.9,28.9ZM226.4,20.2L228.5,21.5L227.3,25L222.8,25.3L219.8,24.8L219.8,23.2L215.3,23.4L215.1,21.3L226.4,20.2ZM233.3,9.4L238.1,8.4L236.8,7.8L243.3,7.6L246.9,9.1L256.1,10.2L261.6,12.9L252.7,15.9L242,15.7L239,14.6L239.1,13.6L241.3,12.8L236.2,12.9L231.4,10.7L233.3,9.4ZM245.6,5.8L262.5,3.7L268.9,4.7L271.1,3.2L279.7,2.4L297.7,2.1L328.2,3.8L328.1,4.5L312.1,6.9L318.1,6.9L307,9.4L302.3,11.7L286.4,13L290.2,13.3L288.3,13.8L290.6,15.2L278.4,18.9L283.6,20.1L276.2,21.7L251.4,20.9L251.1,19.6L256.2,18.9L254.8,16.9L264,17.9L255.7,15.6L263.6,12.9L259.7,11.8L258.5,10.4L268.3,10.8L272.6,9.8L256.7,9.7L251.8,8.7L245.6,5.8ZM291.1,46L286.1,46.9L285.5,45.6L286.6,44L289.2,43.6L291.4,44.4L291.1,46ZM232.6,40.3L234.3,41.4L232.6,42.3L222.8,40.5L227.2,38.5L232.6,40.3ZM320.8,94.8L325.4,95.3L328.3,96.9L320.8,94.8ZM322.2,102.7L323.2,104L327.7,104.3L325.4,105.6L321.8,104.5L321.1,103.5L322.2,102.7ZM68.3,177.5L70,179.1L67.5,180.8L66.5,178.6L67.1,177L68.3,177.5ZM37.6,65.6L39.8,65.8L40.1,66.9L34.9,66.1L37.6,65.6ZM74.4,72.3L77.4,73.3L72.2,75.7L70.8,75L70.4,73.7L74.4,72.3ZM23,56.2L31.4,57.5L29.1,58.4L23.5,57.4L23,56.2ZM891.7,240.5L901.6,244L905.1,246.8L905.5,248.5L910.1,250.2L910.8,251.7L908.2,252L908.9,253.8L913.1,258.6L914.7,258.5L914.6,259.7L918.9,261.9L918.6,262.7L910.9,261.4L905.7,255.7L902.1,254.5L898,256.2L898.4,258.3L896.2,259.2L891.8,258.6L889.3,256.3L886.5,255.8L882.3,256.7L883.4,254.4L885.2,253.6L883.1,248.3L871.3,243.1L869.4,244.7L868.8,242.5L866.6,241.1L871.6,240.2L871.4,239.5L867.3,239.5L862.6,235.9L867.7,234.3L872.2,235.5L873.4,241L876.3,242.7L878.6,239.7L881.8,238L891.7,240.5ZM924,243.5L925.4,245.8L924.5,246.5L923.3,243.8L918.5,240.9L919.3,240.2L924,243.5ZM920.3,249.5L915.9,250.8L912,249.3L912.2,248.4L916.2,248.6L917.1,247.2L917.3,248.7L918.9,248.5L921.2,246.5L920.9,244.9L922.6,244.8L923.1,246.8L920.3,249.5ZM929.9,248.1L933.4,251.5L933,252.3L931,251.5L929.2,247.6L929.9,248.1ZM847.5,259.4L845.7,261.5L842.9,261.7L844.4,259.1L847.5,257.4L853.7,256.6L847.5,259.4ZM872.8,252.5L873.6,248.4L874.2,250.6L872.8,252.5ZM820.7,218.2L824.2,214.1L825.4,214.1L826.9,216.7L831.1,218.3L830.9,219.4L829,219.5L829.5,220.9L827.4,221.8L825.9,224.3L827.9,227L827.4,228.2L830.5,230.8L827.3,231.1L826.4,235.5L823.8,237.4L822.6,244.5L822.2,243.5L819.1,244.7L818,243L814.6,242L811.3,243L810.3,241.6L806.2,241.5L805.7,237.7L803,234.6L803,229.6L804.6,227.7L806.7,228.7L808.8,228.2L809.4,225.8L813.9,224.7L820.7,218.2ZM859.4,241.1L862.4,241.9L863.4,244L861.1,242.9L855.3,242.7L855.9,241.2L859.4,241.1ZM852.4,243.8L850,242.1L852.8,242L853.5,242.9L852.4,243.8ZM855.4,227.3L855.6,228.8L857.2,229L857.5,230.2L857.3,232.6L855.9,232.3L855.5,234L856.6,235.5L855.8,235.8L853.9,230.5L855.4,227.3ZM841.5,230.9L844.7,230.8L847.4,228.7L847.9,229.4L845.7,232.1L843.6,232.7L833.8,232.6L833.4,234.7L835.9,237.2L837.4,236L842.6,235L842.4,236.3L841.2,235.9L837.5,238.6L840.1,242.2L839.6,243.1L842.1,246.3L842.1,248.1L840.6,249L839.5,248L840.9,245.7L838.2,246.8L837.5,246L837.8,244.9L835.8,243.3L836,240.6L834.2,241.4L834.5,248.7L832.8,249.1L831.6,248.2L831.9,243L830.8,243L829.9,241.1L832.8,232.9L835.8,229.7L841.5,230.9ZM834.1,261.8L830.5,259.9L833.1,259.3L835.5,261L834.1,261.8ZM837.1,257L841.4,255.8L841,257.3L833.1,257.8L833.1,256.8L835.3,256.2L837.1,257ZM828.5,256.5L830.2,256.3L830.9,257.5L824.3,258.4L827.5,255.8L828.5,256.5ZM801.3,251.1L801.7,252.1L807.1,252.4L807.7,251.3L812.8,252.6L813.8,254.4L821.4,256.6L818.2,257.6L800.8,254.9L792.7,252.3L794.6,249.7L801.3,251.1ZM789.9,236.3L791.4,239.8L793.4,240.1L794.7,241.8L793.9,249.6L790.9,249.6L785,245L775.7,232.8L773.9,228.2L764.9,219.5L764.7,218.1L770.8,218.7L779.6,227.5L782.4,227.5L784.7,229.4L788.4,233L787.3,235.3L789.9,236.3ZM309.4,379.5L311.8,382.9L319.3,385.2L318.1,386.6L314,385.8L310.7,387.8L307.7,387.5L299.3,384.7L292.6,380.1L302.5,383.5L304.8,380.3L309.4,379.5ZM300.8,183.2L293.2,182.4L293.4,181.5L299.1,181.5L297.8,179.2L296.1,178.8L296.7,178L303.3,178.1L310.2,181.6L309.2,182.7L303.7,182.1L301.7,184.4L300.8,183.2ZM760.5,8.3L766.5,7.6L778.3,11.7L777.6,14.2L771.5,14.6L759.2,12.7L757.1,10.7L753.3,10.2L760.5,8.3ZM785.7,13.1L792.7,14.7L791.9,15.8L776.2,16.9L781.3,13.2L785.7,13.1ZM885.6,21.8L903,23.4L900.8,25.5L886,26.1L880.5,24.3L882,22.4L885.6,21.8ZM911.7,24L918.7,24.8L915.5,25.9L905.9,24.5L906.5,23.6L911.7,24ZM888.5,29.5L894.6,28.2L898.9,30L888.5,29.5ZM624.6,9.5L643.1,9.2L632.2,11.1L629.2,10.4L630.8,9.6L624.6,9.5ZM648.6,28.5L655.3,26L654.5,24.8L669.9,21.5L689.3,19.6L691.3,20.7L671.1,24.3L662.4,26.9L653.9,32.3L654.5,34.6L659.8,36.9L649.1,36.8L648.4,35.5L643.3,34.8L642.9,33.3L645.8,32.7L645.7,31.2L651.2,28.8L648.6,28.5ZM897,84.1L897.9,89.6L901.8,97.3L897.7,96.4L896,100.4L898.7,103.2L898.6,105.2L896.5,103.5L894.7,105.6L894.9,91.8L893.3,89.1L893.6,85.3L896.1,84L895,82.7L896.3,82.3L897,84.1ZM0,34.7L6.7,35.4L-3.1,36.7L-3.5,35.8L0,34.7ZM1000,34.7L1006.7,35.4L996.9,36.7L996.5,35.8L1000,34.7ZM280.6,158.9L283.8,159.5L280.8,159.9L280.6,158.9ZM283.9,158.2L286.1,159.5L285.6,161.4L283.9,158.2ZM282.8,163.3L283.6,163.4L284.6,167.3L282.2,165.1L282.8,163.3ZM330,377.3L337.4,375.2L339.6,376.5L335,378.3L333.8,377.3L331.4,378.6L330,377.3ZM542.1,12L543.1,11.1L547.2,11L559.8,14L552.9,15.1L551.3,17.1L548.9,17.7L547.6,20L544.2,20.1L538.2,18.4L540.7,17.4L531.2,14.3L529,12.1L536.6,11.1L538.1,12.1L542.1,12ZM576.1,11L572,12.4L564,12.8L555.8,12.3L548.2,10.2L563.7,9.3L576.1,11ZM568.7,17.1L562.5,18.2L557.6,17.6L559.5,16.8L557.8,16L563.6,15.4L568.7,17.1ZM370.1,3.8L392.7,1.3L424.7,1.3L442.1,3.5L437,4.6L411.4,5L431,6.1L436.4,5.3L438.7,6.3L435.6,7.9L456.2,5.8L464.5,6.3L466.1,7.5L453.2,10.1L444.3,10.6L450.7,10.7L445.3,14.6L445.4,17.7L448.7,19.5L439.8,20.5L444.9,21.9L445.6,24.3L442.6,24.6L446.2,27L440,27.2L443.2,28.3L442.3,29.3L434.5,29.7L438,31.6L438.1,32.8L432.6,31.7L431.1,32.4L438.5,34.8L439.6,37L434.6,37.6L429,34.9L430,36.8L426.8,38.3L437.9,38.5L422.9,43.1L411.7,44.1L405,48.1L389.4,51.5L387,53.2L385.6,57L381.1,59.2L382.2,61.4L379.5,66.4L375.6,66.6L371.5,64.3L365.9,64.3L356.6,56.6L354.8,52.3L350.9,49.7L351.9,47.7L350.1,46.7L352.8,43.4L357,42.4L358.7,39.1L351.5,40.9L348.1,40L349,36.6L357.3,37.3L350,34.6L344.9,34.3L348,31.7L340.8,25.8L337.2,24.7L337.3,23.6L329.8,21.9L309.7,22.1L301.7,19.4L314.5,18.4L296.4,16.5L296.8,15.5L317.5,12.8L318.5,11.8L311,10.8L327.1,7.4L326,6.2L341.1,5L352.7,5.9L360,4.3L376.3,6.5L369.7,5L370.1,3.8ZM691.5,368.4L696,370.1L695.2,371.4L691,371.6L691.5,368.4ZM524.3,114.9L526.1,113.8L526.6,116.2L525.6,118.4L524.4,117.8L524.3,114.9ZM315.9,181.9L317.8,182.7L313.4,183.5L313.6,181.9L315.9,181.9ZM284.5,182L288.3,183.6L285.5,184.1L282.4,182.7L284.5,182ZM271.5,168.9L276.1,169.1L279.8,171.1L282.4,170.8L287.4,174.4L290,174.9L289.8,175.7L294,177L291.8,178L284,178.2L285.9,176.6L283,175.7L281.3,173.3L271.8,171.1L272.8,170.4L270.1,170.3L266.5,172.5L264,172.5L267.3,170L271.5,168.9ZM637.6,267.9L639.9,276.9L639.4,277.7L638.5,276.1L638,276.9L638.3,280.2L630.8,302.6L626.1,304.4L622.3,302.7L620.4,296.6L620.6,292.6L621.9,292.1L623.5,287.3L622.1,281.7L623.5,278.3L628.6,277.1L632.5,273.8L633,271.3L634.1,271.6L636.7,266.7L637.6,267.9ZM963.3,276.8L962.9,273.9L964.2,274.8L964.6,277L963.3,276.8ZM573,135.3L572.7,136.1L568.7,136.3L565.3,135.3L565.8,134.1L573,135.3ZM482.8,83.7L483.2,85.7L481.1,88.2L476.2,89.8L472.3,89.4L474.5,86.5L473.1,83.7L479,80.2L481.3,80.1L484.3,81.8L482.8,83.7ZM960.5,291.9L964.2,294.9L963.2,295.5L959.6,293.5L955.6,289.1L960.5,291.9ZM950.3,262.4L951.1,263.4L949.2,263.4L948.1,261.7L950.3,262.4ZM949.1,260L946.1,256.4L947,256.4L949.1,260ZM946.8,260.7L944,260.5L943.6,259L946.8,260.7ZM943.4,255.6L944.2,257L939.5,253.9L943.4,255.6ZM991.3,344.6L988.9,348L986.8,349.1L985.1,348L986.7,345.7L985.8,344.2L982.8,343L984.9,341.1L985.3,337.1L979.5,329.2L984.2,331.3L987,336.7L987.1,334.8L988.4,335.5L988.8,337.6L992.9,338.7L995.9,338L994.4,342.1L992.2,342L991.3,344.6ZM971.3,354.3L975.3,351.4L980,345.8L981.2,348.1L983.2,347L984,348.2L984,349.3L979.7,353.8L980.8,355.1L976.3,356.2L973.9,360.8L970.4,362.9L963,361.7L962.5,360.7L964,358.6L971.3,354.3ZM910.2,346.7L911.9,346.8L912.1,350.1L910.9,353.3L909.9,352.6L908,354.5L905.7,354.3L902.1,346.4L906.6,347.6L910.2,346.7ZM850.4,322.8L845.1,324.9L843.5,327.4L833,327.7L827.8,330.7L824,330.6L819.5,328.3L819.6,326.7L821.4,325.7L821.7,322.8L819.6,315.1L814.8,305.8L816,307L815.1,304.5L817.3,306.3L815,301L815.9,295.7L817.1,293.7L817.3,295.8L818.5,293.9L824.2,290.8L835.7,288L839.6,283.9L839.8,281.2L841.7,278.9L842.9,281.3L844.1,280.7L843.1,279.4L843.9,278.1L845.2,278.7L845.5,276.5L849.1,272.8L853,271.7L856.6,274.6L860.1,274.9L859.5,273.4L862.8,268.1L868.3,267L868.2,265.5L866.2,264.6L867.7,264.2L875.8,267.3L879.1,266.2L880.4,267.6L877.7,270.3L876.4,275L889.5,282.5L891.3,281.5L892.4,278.8L893.6,275.1L893.6,267.8L895.9,262.9L899.8,273.7L901.6,272.7L903.8,274.9L906.6,286L913.5,289.9L915.8,295.4L918.7,295.5L919.2,298.5L924.6,303.5L925.3,309L926.6,311.4L924.7,321.2L919.5,328.6L916.7,337.3L912,338.3L906.4,341.7L902.4,340L902.9,338.6L898.9,341.1L890.7,338.9L888.9,337.2L887.7,333.7L883.7,332.2L884.6,330.9L883.9,328.8L882.5,330.7L880.1,331.2L883,326.7L882.8,324.7L878.8,328L877.7,330.2L875.6,329.1L875.7,327.6L872.5,324.5L873,323.9L864.8,320.8L850.4,322.8ZM727.2,212.4L726.8,215.3L723.2,216.7L721.4,210.5L722.6,206L727.2,212.4ZM804.1,182.8L801.8,181.9L801.7,179.5L803.1,178.3L807.7,177.5L808.4,178.6L806.5,181.4L804.1,182.8ZM838.3,165.6L835.4,172.3L833.6,167.9L837.5,163L838.8,163.9L838.3,165.6ZM541,127.4L543.1,127.1L541.9,131.6L534.5,128.8L534.9,127.4L541,127.4ZM524.2,119.7L525.6,118.8L527.2,120.8L526.9,124.5L524.5,125.2L523.4,124.5L522.7,119.6L524.2,119.7ZM534.4,77.5L535.2,78.9L533.6,81.1L530.7,79.5L530.3,78.4L534.4,77.5ZM491.4,85L491.8,83.4L489.9,81.6L485.9,80.4L486.9,79.1L486,78.4L484.5,79.7L484.3,77L482.9,75.6L486.1,70.5L491.7,70.5L488.7,73.5L494.6,73.1L491.3,77.8L494.2,78L496.9,81.6L498.8,82L501.3,86.3L504.7,86.8L504.3,88.6L502.9,89.4L504,90.9L501.5,92.3L491.8,92.5L490,93.8L484,94L490.5,90.5L486.2,90L485.4,88.9L488.3,88L486.8,86.5L487.3,84.7L491.4,85ZM459.7,48.7L459.1,50.5L462.2,52.4L458.6,54.5L448.2,56.9L436.8,55.7L439.5,54.4L433.5,53.1L438.4,52.5L438.3,51.7L432.4,51.1L434.3,49.3L438.5,48.9L442.8,50.7L447.1,49.2L450.6,50L455.1,48.5L459.7,48.7ZM835.6,198L834.2,195.9L837.6,197L836.8,199.4L835.6,198ZM840.5,205.6L841.5,203.1L843,202.9L842.6,204.8L844.7,202.1L844.4,204.8L841.7,208.2L839.9,206.3L840.5,205.6ZM851,209.9L851.5,213.3L850.5,215.9L849.5,213L848.2,214.5L849.1,216.5L848.3,217.8L845.1,216.2L844.3,214.2L845.1,212.9L843.4,211.5L839.1,214.1L838.7,213.3L839.8,211L843,209.2L844,210.4L846.1,209.7L846.6,208.4L848.5,208.3L848.4,206.2L850.6,207.5L851,209.9ZM829.2,207.4L825.5,210.1L832,201.7L832.5,204L829.2,207.4ZM839.8,182.7L840.3,185.8L839.6,188.1L837.9,189.1L838.1,193.5L844.3,195L844.7,198.5L841.5,195.7L840.8,196.7L839,195L835.1,194.8L836.1,193L835.3,192.3L834.9,193.3L833.1,190.5L833,187.9L834.1,188.8L835.3,181.9L839.8,182.7ZM839,201.6L838.6,200.3L842,201.1L841.9,202.3L838.9,204.3L839,201.6ZM848.6,199.5L849.4,202.6L847.3,201.9L848,204.5L846.7,205.2L845.3,201.4L846.9,201.6L846.9,200.5L845.2,198.4L847.8,198.5L848.6,199.5ZM894.1,124.5L891.6,127.3L891,133.8L889.6,135.7L881.2,137.2L877.2,140.4L875.3,139.3L875.2,137.2L863.8,139.2L866.7,141.2L864.8,146L863,147.1L861.7,146L862.4,143.5L859.5,140.8L862.1,140L868.4,134.9L876.9,134.6L879.8,129.7L881.6,131L887.3,127.2L889,123.8L888.6,120.6L889.7,118.9L892.7,118.4L894.1,124.5ZM901.7,111.2L903.7,110L904.3,113.1L900.2,113.9L897.7,116.7L893.4,114.8L891.8,117.8L888.8,117.8L888.4,115.1L889.8,112.9L892.7,112.8L894.4,106.8L897.6,109.7L901.7,111.2ZM867.7,140.4L872,137.9L874.3,139.4L872.8,141.1L871.6,140.2L870.2,140.8L869.5,142.5L867.7,141.7L867.7,140.4ZM590.9,135.7L596,134.2L591.6,137.3L589.6,135.8L590.9,135.7ZM328.7,203.4L330.8,203.2L330.7,205.2L327.9,205.3L328.7,203.4Z";
+
+// Laenge/Breite -> Position im viewBox-Koordinatensystem (Plattkarte).
+function mapProject(lat, lng){
+  const { w, h, latTop, latBottom } = WORLD_VIEWBOX;
+  const clamped = Math.max(latBottom, Math.min(latTop, lat));
+  return {
+    x: (lng + 180) / 360 * w,
+    y: (latTop - clamped) / (latTop - latBottom) * h
+  };
+}
+
+function renderVisitorMapLegend(byCountry, viewsWithoutCountry){
+  const legend = document.getElementById("anMapLegend");
+  if(!legend) return;
+  const totalViews = byCountry.reduce((s,c)=> s + c.views, 0);
+  legend.innerHTML = `
+    ${byCountry.slice(0, 3).map((c,i)=>`
+      <div class="an-map-top-item">
+        <span class="an-map-rank">${i+1}</span>
+        <span class="an-map-country">${aesc(c.name)}</span>
+        <span class="an-map-share">${totalViews ? Math.round((c.views / totalViews) * 100) : 0} %</span>
+      </div>`).join("")}
+    ${viewsWithoutCountry ? `<p class="an-map-note">${viewsWithoutCountry.toLocaleString("de-DE")} Aufrufe ohne Herkunft (vor Einführung der Erfassung oder Zeitzone nicht bestimmbar).</p>` : ""}`;
+}
+
+// ---- Zoomen und Verschieben ----------------------------------------
+// Umgesetzt ueber die viewBox des SVG statt ueber CSS-Transformationen:
+// so bleibt die Karte in jeder Zoomstufe gestochen scharf (Vektor), und
+// Punktpositionen bleiben exakt. mapView ist der aktuelle Ausschnitt in
+// Karten-Koordinaten und bleibt ueber Filterwechsel hinweg erhalten.
+const MAP_MAX_ZOOM = 8;
+let mapView = { x: 0, y: 0, w: WORLD_VIEWBOX.w, h: WORLD_VIEWBOX.h };
+
+// Haelt den Ausschnitt innerhalb der Weltkarte und begrenzt die Zoomstufe.
+function clampMapView(v){
+  const { w: W, h: H } = WORLD_VIEWBOX;
+  const width  = Math.min(W, Math.max(W / MAP_MAX_ZOOM, v.w));
+  const height = width * (H / W);   // Seitenverhaeltnis fest, sonst verzerrt die Karte
+  return {
+    w: width,
+    h: height,
+    x: Math.min(Math.max(0, v.x), W - width),
+    y: Math.min(Math.max(0, v.y), H - height)
+  };
+}
+
+// Schreibt den Ausschnitt ins SVG und passt die Punktgroessen an: ohne das
+// wuerden Punkte beim Hineinzoomen einfach mitwachsen und die Karte
+// zupflastern. Der Ausgleich ist bewusst unvollstaendig (Exponent 0.7),
+// damit beim Hineinzoomen trotzdem noch ein leichtes Groesserwerden bleibt.
+function applyMapView(){
+  const svg = document.getElementById("anMapSvg");
+  if(!svg) return;
+  mapView = clampMapView(mapView);
+  svg.setAttribute("viewBox", `${mapView.x.toFixed(2)} ${mapView.y.toFixed(2)} ${mapView.w.toFixed(2)} ${mapView.h.toFixed(2)}`);
+
+  const zoom = WORLD_VIEWBOX.w / mapView.w;
+  const scale = Math.pow(zoom, 0.7);
+  svg.querySelectorAll("[data-r]").forEach(el=>{
+    const base = Number(el.dataset.r) || 3;
+    el.setAttribute("r", Math.max(1.2, base / scale).toFixed(2));
+  });
+
+  // Bedienelemente an den aktuellen Stand anpassen: "Zuruecksetzen" taucht
+  // erst auf, wenn wirklich gezoomt ist, und +/- werden an den Grenzen grau.
+  const reset = document.getElementById("anMapReset");
+  if(reset) reset.hidden = zoom <= 1.01;
+  const zoomIn  = document.getElementById("anMapIn");
+  const zoomOut = document.getElementById("anMapOut");
+  if(zoomIn)  zoomIn.disabled  = zoom >= MAP_MAX_ZOOM - 0.01;
+  if(zoomOut) zoomOut.disabled = zoom <= 1.01;
+}
+
+// Setzt die Karte auf die ganze Welt zurueck.
+function resetMapView(){
+  mapView = { x: 0, y: 0, w: WORLD_VIEWBOX.w, h: WORLD_VIEWBOX.h };
+  applyMapView();
+}
+
+// Zoomt ueber die +/- Buttons: ohne Ankerpunkt, also immer zur Bildmitte.
+function zoomMapFromButton(f){
+  zoomMapBy(f, { x: mapView.x + mapView.w / 2, y: mapView.y + mapView.h / 2 });
+}
+
+// Bildschirmpunkt -> Karten-Koordinate. Das SVG behaelt immer das
+// Seitenverhaeltnis der viewBox (Breite 100%, Hoehe automatisch), deshalb
+// reicht diese lineare Umrechnung ohne getScreenCTM.
+function mapPointFromEvent(svg, clientX, clientY){
+  const rect = svg.getBoundingClientRect();
+  return {
+    x: mapView.x + (clientX - rect.left) / rect.width  * mapView.w,
+    y: mapView.y + (clientY - rect.top)  / rect.height * mapView.h
+  };
+}
+
+// Zoomt um den Faktor f und haelt dabei den Punkt (anchor) unter dem
+// Mauszeiger fest -- ohne diesen Anker wuerde die Karte beim Radzoom
+// unter dem Zeiger wegrutschen.
+function zoomMapBy(f, anchor){
+  const before = { ...mapView };
+  const target = clampMapView({ ...mapView, w: mapView.w / f });
+  if(anchor){
+    const fx = (anchor.x - before.x) / before.w;
+    const fy = (anchor.y - before.y) / before.h;
+    target.x = anchor.x - fx * target.w;
+    target.y = anchor.y - fy * target.h;
+  } else {
+    target.x = before.x + (before.w - target.w) / 2;
+    target.y = before.y + (before.h - target.h) / 2;
+  }
+  mapView = clampMapView(target);
+  applyMapView();
+}
+
+function wireMapZoom(stage){
+  const svg = document.getElementById("anMapSvg");
+  if(!svg) return;
+
+  // Doppelklick zoomt an der geklickten Stelle hinein -- das ist die
+  // naheliegendste Geste und braucht keine Erklaerung.
+  svg.addEventListener("dblclick", (e)=>{
+    e.preventDefault();
+    zoomMapBy(2, mapPointFromEvent(svg, e.clientX, e.clientY));
+  });
+
+  // Das Mausrad ALLEIN scrollt bewusst weiterhin die Seite: die Karte steht
+  // mitten in einer langen Ansicht, und eine Karte, die das Scrollen
+  // abfaengt, fuehlt sich wie eine Falle an. Gezoomt wird nur mit
+  // gedrueckter Strg-/Cmd-Taste -- und damit automatisch auch mit der
+  // Zwei-Finger-Pinch-Geste am Touchpad, die der Browser genau so meldet.
+  svg.addEventListener("wheel", (e)=>{
+    if(!e.ctrlKey && !e.metaKey) return;
+    e.preventDefault();
+    zoomMapBy(e.deltaY < 0 ? 1.25 : 1/1.25, mapPointFromEvent(svg, e.clientX, e.clientY));
+  }, { passive: false });
+
+  // Ziehen zum Verschieben. Pointer-Events decken Maus und Finger ab;
+  // touch-action:none im CSS verhindert, dass daraus ein Seiten-Scroll wird.
+  let dragging = null;
+  svg.addEventListener("pointerdown", (e)=>{
+    if(e.button !== 0 && e.pointerType === "mouse") return;
+    dragging = { id: e.pointerId, startX: e.clientX, startY: e.clientY, view: { ...mapView } };
+    svg.setPointerCapture(e.pointerId);
+    svg.classList.add("is-dragging");
+    // Der Tooltip haengt an einer festen Pixelposition -- beim Verschieben
+    // wuerde er sonst neben seinem Punkt stehenbleiben.
+    const tip = document.getElementById("anMapTip");
+    if(tip) tip.hidden = true;
+  });
+  svg.addEventListener("pointermove", (e)=>{
+    if(!dragging || e.pointerId !== dragging.id) return;
+    const rect = svg.getBoundingClientRect();
+    mapView = clampMapView({
+      ...dragging.view,
+      x: dragging.view.x - (e.clientX - dragging.startX) / rect.width  * dragging.view.w,
+      y: dragging.view.y - (e.clientY - dragging.startY) / rect.height * dragging.view.h
+    });
+    applyMapView();
+  });
+  const endDrag = (e)=>{
+    if(!dragging || e.pointerId !== dragging.id) return;
+    dragging = null;
+    svg.classList.remove("is-dragging");
+  };
+  svg.addEventListener("pointerup", endDrag);
+  svg.addEventListener("pointercancel", endDrag);
+
+  applyMapView();
+}
+
+// Zeichnet Karte + Punkte neu. Wird nach jedem Filterwechsel aufgerufen --
+// reines SVG, deshalb ist ein kompletter Neuaufbau hier unproblematisch.
+function updateVisitorMap(byCountry, viewsWithoutCountry){
+  const card  = document.getElementById("anMapCard");
+  const stage = document.getElementById("anMapStage");
+  if(!card || !stage) return;
+  card.hidden = false;
+
+  renderVisitorMapLegend(byCountry, viewsWithoutCountry);
+
+  if(!byCountry.length){
+    stage.innerHTML = `<p class="an-map-hint">Noch keine Herkunftsdaten in diesem Zeitraum.<br>
+      Die Erfassung startet mit dieser Version — ältere Aufrufe haben kein Land hinterlegt.</p>`;
+    return;
+  }
+
+  const maxViews = Math.max(1, ...byCountry.map(c => c.views));
+  // Die drei staerksten Laender pulsieren -- auf allen gleichzeitig wuerde
+  // die Karte unruhig, ohne Puls faende das Auge den Schwerpunkt nicht.
+  // data-r haelt den Grundradius fest: beim Zoomen werden die Punkte daraus
+  // neu berechnet, damit sie nicht einfach mitwachsen (siehe applyMapView).
+  const dots = byCountry.map((c, i)=>{
+    const { x, y } = mapProject(c.lat, c.lng);
+    const share = c.views / maxViews;
+    const r = 3 + share * 7;
+    const puls = (i < 3 && !reduceMotion.matches)
+      ? `<circle class="an-map-pulse" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" data-r="${r.toFixed(1)}"></circle>`
+      : "";
+    return `${puls}<circle class="an-map-dot" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" data-r="${r.toFixed(1)}"
+      fill-opacity="${(0.45 + share * 0.45).toFixed(2)}" tabindex="0" role="img"
+      data-idx="${i}" aria-label="${aesc(c.name)}: ${c.visitors} Besucher, ${c.views} Aufrufe"></circle>`;
+  }).join("");
+
+  stage.innerHTML = `
+    <svg class="an-map-svg" id="anMapSvg" viewBox="0 0 ${WORLD_VIEWBOX.w} ${WORLD_VIEWBOX.h}" role="img"
+         aria-label="Weltkarte mit Besucher-Herkunft">
+      <path class="an-map-land" d="${WORLD_LAND_PATH}"/>
+      ${dots}
+    </svg>
+    <div class="an-map-tip" id="anMapTip" hidden></div>`;
+
+  wireMapZoom(stage);
+
+  // Tooltip: ein einziger Listener auf dem Container statt einer je Punkt.
+  const tip = document.getElementById("anMapTip");
+  const showTip = (el)=>{
+    const c = byCountry[Number(el.dataset.idx)];
+    if(!c) return;
+    tip.innerHTML = `<strong>${aesc(c.name)}</strong>
+      ${c.visitors.toLocaleString("de-DE")} Besucher · ${c.views.toLocaleString("de-DE")} Aufrufe
+      ${c.buys ? `· ${c.buys.toLocaleString("de-DE")} Produkt-Klicks` : ""}`;
+    tip.hidden = false;
+    // An der Position des Punktes ausrichten, umgerechnet von viewBox- in Bildschirm-Pixel.
+    const box = stage.getBoundingClientRect();
+    const dot = el.getBoundingClientRect();
+    tip.style.left = (dot.left - box.left + dot.width / 2) + "px";
+    tip.style.top  = (dot.top  - box.top) + "px";
+  };
+  stage.querySelectorAll(".an-map-dot").forEach(dot=>{
+    dot.addEventListener("mouseenter", ()=> showTip(dot));
+    dot.addEventListener("focus",      ()=> showTip(dot));
+    dot.addEventListener("mouseleave", ()=> { tip.hidden = true; });
+    dot.addEventListener("blur",       ()=> { tip.hidden = true; });
+  });
+}
+
 async function renderAnalytics(){
+  // Ein eingeschraenkter Unter-Admin hat keine "Alle Creator"-Sicht -- ohne
+  // diese Absicherung wuerde get_live_visitor_count() (das jetzt einen
+  // konkreten, zugewiesenen Creator verlangt) mit einem Fehler abbrechen.
+  if(!state.isSuperAdmin && (analyticsCreatorId === "all" || !state.creators.some(c => c.id === analyticsCreatorId))){
+    analyticsCreatorId = state.creators[0]?.id ?? "all";
+  }
   app.innerHTML = `
     <div class="a-bar">
       <div class="a-bar-in">
@@ -5377,6 +6456,7 @@ async function renderAnalytics(){
                 </svg>
               </button>
               <div class="an-select-menu" id="anCreatorSelectMenu" role="listbox" aria-label="Creator filtern">
+                ${state.isSuperAdmin ? `
                 <button type="button" class="an-select-opt" role="option" data-creator="all"
                         aria-selected="${analyticsCreatorId === "all"}">
                   <span class="a-av a-av-all">\u2b50</span>
@@ -5385,7 +6465,7 @@ async function renderAnalytics(){
                        stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M4 12.5l5 5L20 6.5"/>
                   </svg>
-                </button>
+                </button>` : ""}
                 ${state.creators.map(c=>`
                   <button type="button" class="an-select-opt" role="option" data-creator="${aesc(c.id)}"
                           aria-selected="${analyticsCreatorId === c.id}">
@@ -5400,25 +6480,55 @@ async function renderAnalytics(){
             </div>
           </div>
         </div>
-        <div id="anBody">
+        <div id="anBodyTop">
           <p class="a-empty">Lädt …</p>
         </div>
+
+        <div class="an-map-card" id="anMapCard" hidden>
+          <div class="an-map-head">
+            <div>
+              <p class="a-block-title" style="margin:0">Besucher-Herkunft · Weltkarte</p>
+              <p class="an-map-hint-line">Doppelklick oder +/− zum Zoomen · ziehen zum Verschieben</p>
+            </div>
+            <div class="an-map-zoom" role="group" aria-label="Karte zoomen">
+              <button type="button" id="anMapOut" aria-label="Herauszoomen">−</button>
+              <button type="button" id="anMapIn" aria-label="Hineinzoomen">+</button>
+              <button type="button" id="anMapReset" class="an-map-zoom-reset">Zurücksetzen</button>
+            </div>
+          </div>
+          <div class="an-map-stage" id="anMapStage">
+            <p class="an-map-hint">Wird geladen …</p>
+          </div>
+          <div class="an-map-legend" id="anMapLegend"></div>
+        </div>
+
+        <div id="anBodyBottom"></div>
       </div>
     </div>`;
 
-  document.getElementById("backToDashboard").onclick = ()=>{ adminView = "dashboard"; render(); };
-  document.getElementById("openRevenue").onclick = ()=>{ adminView = "revenue"; render(); };
+  document.getElementById("backToDashboard").onclick = ()=>{ stopLiveVisitorPolling(); adminView = "dashboard"; render(); };
+  document.getElementById("openRevenue").onclick = ()=>{ stopLiveVisitorPolling(); adminView = "revenue"; render(); };
   document.getElementById("brandBackToSite").onclick = async ()=>{
+    stopLiveVisitorPolling();
     closeAdmin();
     await boot();
   };
-  document.getElementById("signout").onclick = async ()=>{ await sb.auth.signOut(); refresh(); };
+  document.getElementById("signout").onclick = async ()=>{ stopLiveVisitorPolling(); await sb.auth.signOut(); refresh(); };
 
   const periodBar = document.getElementById("anPeriod");
   periodBar.querySelectorAll("[data-period]").forEach(btn=>{
     btn.classList.toggle("is-active", btn.dataset.period === analyticsPeriod);
     btn.onclick = ()=>{ analyticsPeriod = btn.dataset.period; refreshAnalyticsBody(); };
   });
+
+  // Zoom-Bedienung der Weltkarte. Die Karte selbst wird bei jedem
+  // Filterwechsel neu gezeichnet, diese Buttons stehen aber ausserhalb und
+  // werden deshalb genau einmal hier verdrahtet. Beim Betreten der Ansicht
+  // startet die Karte immer bei der ganzen Welt.
+  mapView = { x: 0, y: 0, w: WORLD_VIEWBOX.w, h: WORLD_VIEWBOX.h };
+  document.getElementById("anMapIn").onclick    = ()=> zoomMapFromButton(1.6);
+  document.getElementById("anMapOut").onclick   = ()=> zoomMapFromButton(1/1.6);
+  document.getElementById("anMapReset").onclick = ()=> resetMapView();
 
   const selectWrap   = document.getElementById("anCreatorSelectWrap");
   const selectBtn    = document.getElementById("anCreatorSelectBtn");
@@ -5443,7 +6553,7 @@ async function renderAnalytics(){
   });
 
   selectMenu.querySelectorAll("[data-creator]").forEach(opt=>{
-    opt.onclick = ()=>{
+    opt.onclick = async ()=>{
       analyticsCreatorId = opt.dataset.creator;
       selectLabel.textContent = opt.querySelector(".an-select-opt-label").textContent;
       // Avatar der Option (Bild/Farbe/Initiale) 1:1 in den Trigger uebernehmen,
@@ -5457,11 +6567,17 @@ async function renderAnalytics(){
       selectMenu.querySelectorAll("[data-creator]").forEach(o =>
         o.setAttribute("aria-selected", o === opt ? "true" : "false"));
       closeCreatorSelect();
-      refreshAnalyticsBody();
+      // Erst abwarten, bis refreshAnalyticsBody() den KPI-Grid (inkl.
+      // #liveVisitorCount) neu aufgebaut hat -- sonst faende
+      // refreshLiveVisitorCount() das Element noch nicht und wuerde
+      // faelschlich sein eigenes Polling-Intervall stoppen.
+      await refreshAnalyticsBody();
+      refreshLiveVisitorCount();
     };
   });
 
   await refreshAnalyticsBody();
+  startLiveVisitorPolling();
 }
 
 // Laedt/rendert nur den Koerper neu (KPIs, Chart, Top-Produkte, Agenten) — die
@@ -5473,8 +6589,14 @@ async function refreshAnalyticsBody(){
   document.querySelectorAll("#anPeriod [data-period]").forEach(btn=>
     btn.classList.toggle("is-active", btn.dataset.period === analyticsPeriod));
 
-  const body = document.getElementById("anBody");
-  if(!body) return;
+  // Zwei Container statt einem: der Globus-Block liegt DAZWISCHEN und darf
+  // beim Filterwechsel NICHT mit neu aufgebaut werden -- jeder Neuaufbau
+  // wuerde sonst einen frischen WebGL-Kontext erzeugen, und davon erlaubt
+  // der Browser nur eine Handvoll gleichzeitig (danach bliebe der Globus
+  // schwarz). Er bekommt deshalb nur neue Daten, kein neues DOM.
+  const body = document.getElementById("anBodyTop");
+  const bodyBottom = document.getElementById("anBodyBottom");
+  if(!body || !bodyBottom) return;
   body.innerHTML = `<p class="a-empty">Lädt …</p>`;
 
   const events = await loadAnalyticsData();
@@ -5524,12 +6646,18 @@ async function refreshAnalyticsBody(){
         <div class="an-kpi-label">${AN_ICON_TARGET} Conversion-Rate</div>
         <div class="an-kpi-value">${agg.conversion.toFixed(1)}<span class="an-kpi-unit">%</span></div>
       </div>
+      <div class="an-kpi an-kpi-static" title="Besucher, die sich in den letzten 75 Sekunden gemeldet haben">
+        <div class="an-kpi-label"><span class="an-live-dot" aria-hidden="true"></span> Live gerade jetzt</div>
+        <div class="an-kpi-value" id="liveVisitorCount">–</div>
+      </div>
     </div>
 
     <div class="an-chart-wrap" id="anChartWrap">
       ${renderAnalyticsChartBlock(agg.series)}
-    </div>
+    </div>`;
 
+  // Alles ab hier steht UNTER dem Globus-Block (siehe Container-Aufteilung oben).
+  bodyBottom.innerHTML = `
     <p class="a-block-title" style="margin:0 0 8px">Top 30 meistgeklickte Produkte</p>
     <div class="an-top-list">
       ${agg.topProducts.length ? agg.topProducts.map((row, i)=> `
@@ -5560,6 +6688,7 @@ async function refreshAnalyticsBody(){
   `;
 
   wireKpiCards();
+  updateVisitorMap(agg.byCountry, agg.viewsWithoutCountry);
 }
 
 // Ein Weidian-Mitarbeiter hat direkt bestaetigt: "today" in den Kennzahlen
@@ -5647,12 +6776,10 @@ function buildRevenueSeries(orders, period){
     if(idx >= 0 && idx < days) buckets[idx].revenue += o.price;
   });
   // Bei 30 Tagen nur jeden paar Tage beschriften, sonst ueberladen sich die Labels
-  const labelEvery = days > 10 ? Math.ceil(days/8) : 1;
+  const labelIdx = pickEvenLabelIndices(days, days > 10 ? 8 : days);
   return buckets.map((b, i) => ({
     revenue: Math.round(b.revenue*100)/100,
-    label: (i % labelEvery === 0 || i === days-1)
-      ? resetDateLabel(b.bucketStartMs)
-      : ""
+    label: labelIdx.has(i) ? resetDateLabel(b.bucketStartMs) : ""
   }));
 }
 
@@ -6169,10 +7296,28 @@ async function renderRevenue(){
   // Demo-Daten verwendet und das "Vorschau"-Badge verschwindet automatisch.
   // Ohne echte Daten (Tabelle leer / noch keine Synchronisierung gelaufen)
   // bleibt alles exakt beim bisherigen Demo-Verhalten.
-  const { data: realOrdersRaw } = await sb.from("weidian_orders")
+  //
+  // Der Zeitraum-Filter (revenuePeriod) wird HIER schon in die Abfrage
+  // eingebaut, statt erst nachtraeglich clientseitig zu filtern -- ohne das
+  // wurde frueher pauschal auf die letzten 500 Zeilen begrenzt. Bei "Gesamt"
+  // (kein Zeitraum-Cutoff) reichte das nicht mehr aus, sobald mehr als 500
+  // Bestellungen insgesamt vorliegen (aktuell z.B. 1094) -- "Gesamt" zeigte
+  // dadurch einen zu NIEDRIGEN Umsatz, weil aeltere Bestellungen jenseits der
+  // 500 stillschweigend fehlten. Fuer feste Zeitraeume (24h/7d/30d) filtert
+  // jetzt direkt die Datenbank nach Datum, das braucht kein hartes Zeilen-Limit
+  // mehr; nur "Gesamt" bekommt eine grosszuegige Obergrenze als Sicherheitsnetz.
+  const periodDaysForFetch = { "24h": 1, "7d": 7, "30d": 30, all: null }[revenuePeriod];
+  const fetchCutoffIso = periodDaysForFetch === null
+    ? null
+    : new Date(resetDayStartMs(Date.now()) - (periodDaysForFetch-1) * 24*3600*1000).toISOString();
+
+  let realOrdersQuery = sb.from("weidian_orders")
     .select("weidian_order_id, weidian_shop_id, title, image_url, price, status, order_date")
-    .order("order_date", { ascending: false })
-    .limit(500);
+    .order("order_date", { ascending: false });
+  realOrdersQuery = fetchCutoffIso
+    ? realOrdersQuery.gte("order_date", fetchCutoffIso)
+    : realOrdersQuery.limit(5000);
+  const { data: realOrdersRaw } = await realOrdersQuery;
   const hasRealData = Array.isArray(realOrdersRaw) && realOrdersRaw.length > 0;
 
   // Fest verdrahtete Beispieldaten, rein fuers Layout — kein Bezug zu echten Shops.
@@ -7223,8 +8368,15 @@ function wireDashboard(){
     render();
   };
 
-  document.getElementById("openShopAssign").onclick = ()=>{
+  const openShopAssignBtn = document.getElementById("openShopAssign");
+  if(openShopAssignBtn) openShopAssignBtn.onclick = ()=>{
     adminView = "shopassign";
+    render();
+  };
+
+  const openAdminAccountsBtn = document.getElementById("openAdminAccounts");
+  if(openAdminAccountsBtn) openAdminAccountsBtn.onclick = ()=>{
+    adminView = "adminaccounts";
     render();
   };
 
@@ -7266,7 +8418,9 @@ function wireDashboard(){
       closeSwitch();
       state.activeId = pick.dataset.pick;
       editingProductId = null;
+      bulkSelectMode = false; selectedProductIds.clear();
       productFilterCat = "all"; productFilterSubcat = "all"; productFilterStyle = "all"; productFilterQuery = "";
+      newProductCategory = null; newProductSubcat = ""; newProductStyles = [];
       await loadCategoriesFor(state.activeId);
       state.products = await loadProducts(state.activeId);
       return render();
@@ -7401,7 +8555,7 @@ function wireDashboard(){
     setPrev("c-avatarprev", ""); setPrev("c-promologoprev", "");
     shareLinkInput.value = "";
     populateWeidianShops(WEIDIAN_SHOPS, "");
-    toggle.textContent = "+ Neuer Creator";
+    if(toggle) toggle.textContent = "+ Neuer Creator";
     if(editBtn) editBtn.textContent = "Bearbeiten";
   }
 
@@ -7419,7 +8573,7 @@ function wireDashboard(){
     document.getElementById("cFormTitle").textContent = c ? `${c.name} bearbeiten` : "Neuer Creator";
     cForm.querySelector("button:not([type=button])").textContent =
       c ? "\u00c4nderungen speichern" : "Creator anlegen";
-    toggle.textContent  = mode === "new"  ? "Abbrechen" : "+ Neuer Creator";
+    if(toggle) toggle.textContent  = mode === "new"  ? "Abbrechen" : "+ Neuer Creator";
     if(editBtn) editBtn.textContent = mode === "edit" ? "Abbrechen" : "Bearbeiten";
 
     if(c){
@@ -7458,7 +8612,7 @@ function wireDashboard(){
     document.getElementById("c-name").focus();
   }
 
-  toggle.onclick = ()=> formMode === "new"  ? closeForm() : openForm("new");
+  if(toggle) toggle.onclick = ()=> formMode === "new"  ? closeForm() : openForm("new");
   if(editBtn) editBtn.onclick = ()=> formMode === "edit" ? closeForm() : openForm("edit");
   document.getElementById("cancelNew").onclick = closeForm;
 
@@ -7543,7 +8697,7 @@ function wireDashboard(){
           product_url: p.product_url,
           image_url: p.image_url,
           category: p.category,
-          style_tag: p.style_tag,
+          style_tags: p.style_tags,
           is_trend: p.is_trend,
           sort_order: (i + 1) * 10
         }));
@@ -7731,7 +8885,7 @@ function wireDashboard(){
       product_url: document.getElementById("e-url").value.trim() || null,
       category: newCategory,
       subcategory: document.getElementById("e-subcat").value || null,
-      style_tag: document.getElementById("e-style").value.trim() || null,
+      style_tags: getSelectedStyleTags("e-style"),
       image_url: editedImageUrl || null,
       is_trend: document.getElementById("e-trend").checked,
       is_featured: stayFeatured,
@@ -7861,10 +9015,16 @@ function wireDashboard(){
 
   document.querySelectorAll("[data-delstyle]").forEach(btn => btn.onclick = async ()=>{
     const s = state.styles.find(x => x.id === btn.dataset.delstyle);
-    const drin = state.products.filter(p => p.style_tag === s.label).length;
+    const drin = state.products.filter(p => (p.style_tags || []).includes(s.label)).length;
     if(!confirm(`Style „${s.label}" löschen?` +
       (drin ? `\n\nBei ${drin} Produkt${drin===1?"":"en"} wird der Style entfernt.` : ""))) return;
-    if(drin) await sb.from("products").update({ style_tag:null }).eq("style_tag", s.label);
+    // Entfernt s.label aus dem style_tags-Array ueberall, wo es steckt (nicht
+    // einfach auf null setzen wie bei einem einzelnen Textfeld frueher) --
+    // array_remove() geht per Query-Builder nicht direkt, deshalb eine RPC.
+    if(drin){
+      const { error: cleanupErr } = await sb.rpc("remove_style_from_products", { style_label: s.label });
+      if(cleanupErr) return atoast(cleanupErr.message, "err");
+    }
     const { error } = await sb.from("styles").delete().eq("id", s.id);
     if(error) return atoast(error.message, "err");
     atoast("Style gelöscht.");
@@ -7996,10 +9156,13 @@ function wireDashboard(){
   const pCatEl = document.getElementById("p-cat");
   const pSubcatEl = document.getElementById("p-subcat");
   if(pCatEl && pSubcatEl) pCatEl.onchange = ()=>{
+    newProductCategory = pCatEl.value;
+    newProductSubcat = ""; // Unterkategorie gehoert zur alten Kategorie, gilt nicht mehr
     const opts = state.subcategories.filter(s => s.category_key === pCatEl.value);
     pSubcatEl.innerHTML = `<option value="">Keine</option>` +
       opts.map(s=>`<option value="${aesc(s.key)}">${aesc(s.label)}</option>`).join("");
   };
+  if(pSubcatEl) pSubcatEl.onchange = ()=>{ newProductSubcat = pSubcatEl.value; };
 
   // Bestimmt den sort_order-Wert fuer ein neu angelegtes Produkt anhand der
   // gewaehlten Position. "top"/"bottom" haengen ganz vorne/hinten an (ausserhalb
@@ -8043,7 +9206,7 @@ function wireDashboard(){
       product_url: url || null,
       category: document.getElementById("p-cat").value,
       subcategory: document.getElementById("p-subcat").value || null,
-      style_tag: document.getElementById("p-style").value.trim() || null,
+      style_tags: getSelectedStyleTags("p-style"),
       image_url: uploadedUrl || null,
       is_trend: document.getElementById("p-trend").checked,
       discount_label: discountMatch ? discountMatch[1] : null,
@@ -8153,7 +9316,26 @@ function wireDashboard(){
     }
   });
 
+  // Checkbox-Klicks separat als "change" statt im obigen Klick-Listener --
+  // aendert nur selectedProductIds + ein paar DOM-Details direkt (kein render()),
+  // sonst wuerde jeder einzelne Haken die portionsweise geladene Liste
+  // (renderAdminProductRows/ADMIN_ROW_CHUNK_SIZE) auf die ersten 50 Zeilen zuruecksetzen.
+  document.getElementById("list")?.addEventListener("change", (e)=>{
+    const cb = e.target.closest("[data-select]");
+    if(!cb) return;
+    const id = cb.dataset.select;
+    if(cb.checked) selectedProductIds.add(id); else selectedProductIds.delete(id);
+    cb.closest(".a-row")?.classList.toggle("is-selected", cb.checked);
+    updateBulkBarUI();
+  });
+
   wireDragReorder();
+
+  // Style-Mehrfachauswahl in "Produkt hinzufügen" (immer vorhanden) und
+  // "Produkt bearbeiten" (nur wenn gerade eine Zeile aufgeklappt ist --
+  // wireStyleMultiSelect() macht selbst nichts, wenn die Elemente fehlen).
+  wireStyleMultiSelect("p-style", chosen => { newProductStyles = chosen; });
+  wireStyleMultiSelect("e-style");
 
   // ---- Produktfilter: Kategorie/Style loesen sofort aus, Suche debounced,
   // damit nicht bei jedem Tastenanschlag ein Netzwerk-Roundtrip-Gefuehl entsteht.
@@ -8192,6 +9374,54 @@ function wireDashboard(){
   }
   if(filterResetEl) filterResetEl.onclick = ()=>{
     productFilterCat = "all"; productFilterSubcat = "all"; productFilterStyle = "all"; productFilterQuery = "";
+    render();
+  };
+
+  // ---- Mehrfachauswahl ----
+  const bulkToggleBtn = document.getElementById("bulkToggleBtn");
+  if(bulkToggleBtn) bulkToggleBtn.onclick = ()=>{
+    bulkSelectMode = !bulkSelectMode;
+    selectedProductIds.clear();
+    render();
+  };
+
+  const bulkSelectAllBtn = document.getElementById("bulkSelectAllBtn");
+  if(bulkSelectAllBtn) bulkSelectAllBtn.onclick = ()=>{
+    const items = filteredAdminProducts();
+    const allSelected = items.length > 0 && items.every(p => selectedProductIds.has(p.id));
+    if(allSelected) items.forEach(p => selectedProductIds.delete(p.id));
+    else items.forEach(p => selectedProductIds.add(p.id));
+    render();
+  };
+
+  async function runBulkUpdate(fields, successText){
+    if(!selectedProductIds.size) return;
+    const ids = Array.from(selectedProductIds);
+    const { error } = await sb.from("products").update(fields).in("id", ids);
+    if(error) return atoast(error.message, "err");
+    atoast(`${ids.length} ${ids.length === 1 ? "Produkt" : "Produkte"} ${successText}.`);
+    selectedProductIds.clear();
+    state.products = await loadProducts(state.activeId);
+    render();
+  }
+
+  const bulkHideBtn = document.getElementById("bulkHideBtn");
+  if(bulkHideBtn) bulkHideBtn.onclick = ()=> runBulkUpdate({ is_hidden: true }, "ausgeblendet");
+
+  const bulkShowBtn = document.getElementById("bulkShowBtn");
+  if(bulkShowBtn) bulkShowBtn.onclick = ()=> runBulkUpdate({ is_hidden: false }, "wieder angezeigt");
+
+  const bulkDeleteBtn = document.getElementById("bulkDeleteBtn");
+  if(bulkDeleteBtn) bulkDeleteBtn.onclick = async ()=>{
+    if(!selectedProductIds.size) return;
+    const ids = Array.from(selectedProductIds);
+    if(!confirm(`${ids.length} ${ids.length === 1 ? "Produkt" : "Produkte"} wirklich löschen? Das lässt sich nicht rückgängig machen.`)) return;
+    const { error } = await sb.from("products").delete().in("id", ids);
+    if(error) return atoast(error.message, "err");
+    atoast(`${ids.length} ${ids.length === 1 ? "Produkt" : "Produkte"} gelöscht.`);
+    if(selectedProductIds.has(editingProductId)) editingProductId = null;
+    selectedProductIds.clear();
+    state.products = await loadProducts(state.activeId);
     render();
   };
 }
@@ -8309,7 +9539,7 @@ async function loadData(){
   const howtoBtn = document.getElementById("howtoBtn");
   if(howtoBtn){
     if(howtoUrl){
-      howtoBtn.href = howtoUrl;
+      howtoBtn.href = safeUrl(howtoUrl);
       document.getElementById("howtoLabel").textContent = howtoLabel;
       howtoBtn.hidden = false;
     } else {
@@ -8404,7 +9634,7 @@ function mapProductRow(p){
     name:  p.title,
     cat:   p.category || "all",
     subcat: p.subcategory || "",
-    style: p.style_tag || "",
+    styles: Array.isArray(p.style_tags) ? p.style_tags : [],
     price: Number(p.price) || 0,
     url:   p.product_url || "",
     img:   p.image_url || "",
@@ -8476,7 +9706,7 @@ function wireSignupPopup(){
     subEl.textContent = `Register up on ${providerName} and support our service.`;
     legalEl.innerHTML = `By using ${providerName} Spreadsheet, you agree to our <a href="#" tabindex="-1">Terms and Legal Policies</a>.`;
 
-    ctaEl.href = CREATOR.loginUrl || "#";
+    ctaEl.href = safeUrl(CREATOR.loginUrl) || "#";
 
     document.body.classList.add("signup-popup-open");
   }
@@ -8533,7 +9763,7 @@ function wireSignupPopup(){
     }
     nameEl.textContent = CREATOR.promoLine1 || CREATOR.name || "";
     subEl.textContent = "Registriere dich f\u00fcr maximalen Rabatt.";
-    ctaEl.href = CREATOR.loginUrl || "#";
+    ctaEl.href = safeUrl(CREATOR.loginUrl) || "#";
 
     // Der Coupon-Text folgt dem Affiliate-Button des jeweiligen Creators:
     // steht dort z.B. "REGISTER HERE FOR 40% OFF", zeigt die Leiste
@@ -8562,7 +9792,7 @@ function wireSignupPopup(){
     const providerName = (creatorAffiliate && AFFILIATE_AGENTS[creatorAffiliate.agentId]?.displayName) || "HipoBuy";
     nameEl.textContent = `HOW TO BUY FROM ${providerName} 🎉`;
     subEl.textContent = "Learn how to order safely from China";
-    ctaEl.href = CREATOR.howtoUrl || "#";
+    ctaEl.href = safeUrl(CREATOR.howtoUrl) || "#";
     ctaTextEl.textContent = "TUTORIAL";
   }
 
@@ -8638,6 +9868,14 @@ async function boot(){
       // Seitenaufruf nur zaehlen, wenn wirklich ein echter Creator geladen wurde —
       // sonst wuerde jeder fehlerhafte/leere Aufruf faelschlich mitgezaehlt.
       if(CREATOR_ROW) trackEvent("page_view", CREATOR_ROW.slug);
+      // Live-Heartbeat: sofort einmal senden, dann alle 25s wiederholen,
+      // solange dieser Tab offen bleibt. In hasBootedOnce, damit boot()-
+      // Aufrufe nach dem ersten Laden (z.B. Ruecksprung aus dem Admin-Bereich)
+      // keinen zweiten, parallel laufenden Heartbeat-Timer aufmachen.
+      if(CREATOR_ROW){
+        sendLiveHeartbeat();
+        setInterval(sendLiveHeartbeat, LIVE_HEARTBEAT_MS);
+      }
     }
   } catch(e) {
     // Egal was in applyCreator/applyLang/applyView/wireSignupPopup schiefgeht:
